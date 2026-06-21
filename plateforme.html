@@ -1555,6 +1555,204 @@ function mkRow(r,i){
   return tr;
 }
 
+// ═══ UTILITAIRES ══════════════════════════════════════════════════════════════
+function esc(v){return(v||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function set(i,f,v){if(rows[i])rows[i][f]=v;}
+function num(i,f,v){if(rows[i])rows[i][f]=parseFloat(v)||0;}
+function autoSave(){try{localStorage.setItem('amat_rows',JSON.stringify(rows));}catch(e){}}
+
+function updateTotals(){
+  const tot={total_bon:0,comptant:0,credit:0};
+  rows.filter(r=>!r.is_total).forEach(r=>{
+    tot.total_bon+=(parseFloat(r.total_bon)||0);
+    tot.comptant+=(parseFloat(r.comptant)||0);
+    tot.credit+=(parseFloat(r.credit)||0);
+  });
+  const fmt=v=>Math.round(v).toLocaleString('fr-FR')+' F';
+  const ids={total_bon:'footer-total',comptant:'footer-comptant',credit:'footer-credit'};
+  Object.entries(ids).forEach(([k,id])=>{const el=document.getElementById(id);if(el)el.textContent=fmt(tot[k]);});
+}
+
+function updateBadge(){
+  const el=document.getElementById('badge-saisie');
+  if(el){el.textContent=rows.length;el.style.display=rows.length?'inline-block':'none';}
+}
+
+function addRow(){
+  const pharma=(document.getElementById('f-pharma')?.value||'').toUpperCase().trim();
+  const facture=document.getElementById('f-facture')?.value||'';
+  rows.push({pharmacie:pharma,numero_facture:facture,date:'',ref_bon:'',salarie:'',matricule:'',patient:'',total_bon:0,taux:null,comptant:0,credit:0});
+  renderTable();
+  autoSave();
+  const tb=document.getElementById('tbody');
+  if(tb){const last=tb.lastElementChild;if(last)last.querySelector('input')?.focus();}
+}
+
+function clearAll(){
+  if(!rows.length)return;
+  if(!confirm('Effacer toutes les lignes ?'))return;
+  rows=[];
+  sortCol=null;sortDir=1;
+  renderTable();autoSave();
+  toast('Tableau effacé','success');
+}
+
+function removeDuplicates(){
+  const seen=new Set();
+  const before=rows.length;
+  rows=rows.filter(r=>{
+    const k=(r.ref_bon||'').trim();
+    if(!k)return true;
+    if(seen.has(k))return false;
+    seen.add(k);return true;
+  });
+  const removed=before-rows.length;
+  renderTable();autoSave();
+  toast(removed>0?removed+' doublon(s) supprimé(s)':'Aucun doublon trouvé',removed>0?'success':'info');
+}
+
+// pendingDeleteIdx already declared above
+function confirmDelete(i){
+  pendingDeleteIdx=i;
+  const modal=document.getElementById('modal-overlay');
+  const txt=document.getElementById('modal-text');
+  if(txt)txt.textContent='Supprimer la ligne '+(i+1)+' ?';
+  const btn=document.getElementById('modal-confirm-btn');
+  if(btn)btn.onclick=()=>{rows.splice(pendingDeleteIdx,1);closeModal();renderTable();autoSave();};
+  if(modal)modal.classList.add('open');
+}
+
+function closeModal(){
+  const modal=document.getElementById('modal-overlay');
+  if(modal)modal.classList.remove('open');
+  pendingDeleteIdx=null;
+}
+
+// ═══ GROUPEMENT PAR PHARMACIE ═════════════════════════════════════════════════
+function groupByPharma(){
+  const groups={};
+  rows.filter(r=>!r.is_total).forEach(r=>{
+    const k=(r.pharmacie||'INCONNUE').toUpperCase().trim();
+    if(!groups[k])groups[k]={nom:k,lignes:[]};
+    groups[k].lignes.push(r);
+  });
+  return Object.values(groups).sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+}
+
+// ═══ EXPORT ════════════════════════════════════════════════════════════════════
+function refreshExportStats(){
+  const lignes=rows.filter(r=>!r.is_total);
+  const tot=lignes.reduce((a,r)=>a+(parseFloat(r.total_bon)||0),0);
+  const credit=lignes.reduce((a,r)=>a+(parseFloat(r.credit)||0),0);
+  const pharmas=new Set(lignes.map(r=>(r.pharmacie||'').trim().toUpperCase()).filter(Boolean));
+  const fmt=v=>Math.round(v).toLocaleString('fr-FR')+' F';
+  const map={'exp-lignes':lignes.length,'exp-pharmas':pharmas.size,'exp-total':fmt(tot),'exp-credit':fmt(credit)};
+  Object.entries(map).forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.textContent=val;});
+}
+
+function buildExcelData(){
+  const mois=document.getElementById('f-mois')?.value||'';
+  const annee=document.getElementById('f-annee')?.value||new Date().getFullYear();
+  const pharma=document.getElementById('f-pharma')?.value||'';
+  const facture=document.getElementById('f-facture')?.value||'';
+  const headers=['PHARMACIE','N° FACTURE','DATE','RÉF. BON','SALARIÉ','MATRICULE','PATIENT','TOTAL BON','TAUX','COMPTANT','CRÉDIT'];
+  const dataRows=rows.filter(r=>!r.is_total).map(r=>[
+    (r.pharmacie||pharma||'').toUpperCase(),
+    r.numero_facture||facture||'',
+    r.date||'',
+    r.ref_bon||'',
+    r.salarie||'',
+    r.matricule||'',
+    (r.patient||'').toUpperCase(),
+    parseFloat(r.total_bon)||0,
+    r.taux!=null&&r.taux!==''?parseFloat(r.taux):null,
+    parseFloat(r.comptant)||0,
+    parseFloat(r.credit)||0
+  ]);
+  return {headers,dataRows,mois,annee,pharma,facture};
+}
+
+function exportExcel(){
+  if(!rows.length){toast('Aucune donnée à exporter','error');return;}
+  if(typeof XLSX==='undefined'){toast('Bibliothèque Excel non chargée','error');return;}
+  const {headers,dataRows,mois,annee,pharma}=buildExcelData();
+  const wb=XLSX.utils.book_new();
+  const wsData=[headers,...dataRows];
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=[{wch:30},{wch:16},{wch:12},{wch:12},{wch:22},{wch:12},{wch:22},{wch:12},{wch:8},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws,'Factures');
+  const nom=(pharma||'AMAT_CI').replace(/[^A-Z0-9_]/gi,'_');
+  const filename='AMAT_CI_'+nom+'_'+mois+'_'+annee+'.xlsx';
+  XLSX.writeFile(wb,filename);
+  toast('Excel téléchargé : '+filename,'success');
+}
+
+function exportTxt(){
+  if(!rows.length){toast('Aucune donnée à exporter','error');return;}
+  const {headers,dataRows,mois,annee,pharma}=buildExcelData();
+  const sep='\t';
+  const lines=[headers.join(sep)];
+  dataRows.forEach(r=>lines.push(r.map(v=>v==null?'':String(v)).join(sep)));
+  const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  const nom=(pharma||'AMAT_CI').replace(/[^A-Z0-9_]/gi,'_');
+  a.download='AMAT_CI_'+nom+'_'+mois+'_'+annee+'.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('TXT téléchargé','success');
+}
+
+function exportAll(){
+  exportExcel();
+  setTimeout(()=>exportTxt(),600);
+}
+
+// ═══ CONFIG PROXY ══════════════════════════════════════════════════════════════
+async function testProxy(){
+  const url=(document.getElementById('proxy-url')?.value||'').replace(/\/$/,'');
+  const btn=document.getElementById('test-proxy-btn');
+  const res=document.getElementById('proxy-result');
+  if(!url){toast('Entrez une URL de proxy','error');return;}
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="fa fa-spinner fa-spin"></i> Test...';}
+  if(res){res.textContent='';res.className='proxy-result';}
+  try{
+    const r=await fetch(url+'/health',{signal:AbortSignal.timeout(6000)});
+    const d=await r.json();
+    const ok=d.status==='ok';
+    if(res){res.textContent=ok?'✓ Serveur actif — Clé API: '+(d.apiKeyConfigured?'configurée':'⚠ manquante'):'⚠ Réponse inattendue';res.className='proxy-result '+(ok?'ok':'error');}
+    toast(ok?'Connexion réussie':'Réponse anormale',ok?'success':'error');
+  }catch(e){
+    if(res){res.textContent='❌ Connexion impossible : '+e.message;res.className='proxy-result error';}
+    toast('Connexion impossible','error');
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML='<i class="fa fa-plug"></i> Tester';}
+  }
+}
+
+function saveProxy(){
+  const url=(document.getElementById('proxy-url')?.value||'').replace(/\/$/,'');
+  if(!url){toast('URL vide','error');return;}
+  localStorage.setItem('amat_proxy',url);
+  toast('Adresse proxy enregistrée','success');
+  go('upload');
+}
+
+// ═══ INIT ══════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  updateClock();
+  setInterval(updateClock,30000);
+  const saved=localStorage.getItem('amat_proxy');
+  const proxyEl=document.getElementById('proxy-url');
+  if(proxyEl)proxyEl.value=saved||window.location.origin;
+  try{
+    const sr=localStorage.getItem('amat_rows');
+    if(sr){rows=JSON.parse(sr);renderTable();if(rows.length)go('saisie');}
+  }catch(e){}
+});
+
+
 function updateGlobalCells(){
   const pharma=document.getElementById('f-pharma').value||'—';
   const facture=document.getElementById('f-facture').value||'—';
