@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMAT-CI — Plateforme factures pharmaceutiques v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+/* ─── RESET & BASE ─────────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:linear-gradient(160deg,#E8F5EE 0%,#F0FAF4 40%,#EBF7F0 100%);color:#0D3D20;min-height:100vh}
+
+/* ─── TOPBAR ────────────────────────────────────────────────────────────────── */
+.topbar{
+  background:linear-gradient(90deg,#fff 60%,#F0FAF4 100%);
+  color:#0D5C2E;padding:10px 28px;
+  display:flex;align-items:center;gap:20px;
+  box-shadow:0 3px 16px rgba(14,92,46,.15);
+  border-bottom:4px solid #1E7A3A;
+}
+.logo-amat{
+  display:flex;align-items:center;gap:0;flex-shrink:0;
+}
+.topbar-divider{
+  width:1px;height:50px;background:#D0E8D8;margin:0 20px;flex-shrink:0;
+}
+.topbar-text h1{font-size:14px;font-weight:700;margin:0;letter-spacing:-.01em;color:#0F5C34;}
+.topbar-text p{font-size:11px;color:#5A8A6A;margin:0;margin-top:2px;}
+.topbar-badge{
+  margin-left:auto;background:#F0FAF4;
+  border:1px solid #B0D8BC;color:#0F5C34;
+  padding:5px 12px;border-radius:20px;font-size:11px;
+  display:flex;align-items:center;gap:6px
+}
+.topbar-badge .dot{width:7px;height:7px;background:#4DEDA0;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ─── STEPPER ───────────────────────────────────────────────────────────────── */
+.stepper{
+  background:linear-gradient(90deg,#F2FAF5,#EDFAF3);border-bottom:2px solid #C0E4CC;
+  display:flex;justify-content:center;
+  padding:0 24px;gap:0;position:relative
+}
+.step{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 24px;cursor:pointer;position:relative;
+  font-size:13px;font-weight:500;color:#8AA898;
+  border-bottom:3px solid transparent;transition:all .2s;
+  white-space:nowrap
+}
+.step.active{color:#0D5C2E;border-bottom-color:#1E7A3A;font-weight:600}
+.step.done{color:#4A8A64}
+.step:hover:not(.active){color:#2C6A44;background:#F4FAF6}
+.step-num{
+  width:24px;height:24px;border-radius:50%;
+  background:#E0ECEA;color:#8AA898;
+  font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .2s
+}
+.step.active .step-num{background:linear-gradient(135deg,#1E7A3A,#0D5C2E);color:#fff;box-shadow:0 2px 6px rgba(14,92,46,.3)}
+.step.done .step-num{background:#4DEDA0;color:#0F4F2E}
+.step-badge{
+  background:#E8690A;color:#fff;
+  border-radius:10px;padding:1px 7px;
+  font-size:10px;font-weight:700;
+  min-width:18px;text-align:center
+}
+.step-sep{color:#D0DDD8;font-size:14px;align-self:center}
+
+/* ─── LAYOUT ────────────────────────────────────────────────────────────────── */
+.main{max-width:1120px;margin:24px auto;padding:0 20px;display:flex;flex-direction:column;gap:18px}
+.screen{display:none;flex-direction:column;gap:18px;animation:fadeIn .2s ease}
+.screen.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ─── CARDS ─────────────────────────────────────────────────────────────────── */
+.card{
+  background:rgba(255,255,255,.92);border-radius:14px;
+  border:1px solid #C8E4D0;padding:22px;
+  box-shadow:0 2px 12px rgba(14,92,46,.06);
+  box-shadow:0 1px 4px rgba(0,0,0,.05)
+}
+.card-title{
+  font-size:11px;font-weight:700;color:#7A9A88;
+  text-transform:uppercase;letter-spacing:.08em;
+  margin-bottom:16px;display:flex;align-items:center;gap:7px
+}
+.card-title i{color:#1A7A4A}
+
+/* ─── UPLOAD ────────────────────────────────────────────────────────────────── */
+.drop-zone{
+  border:2px dashed #80C89A;border-radius:14px;
+  padding:48px 24px;text-align:center;
+  background:linear-gradient(135deg,#F0FAF4,#E4F5EB);
+  cursor:pointer;transition:all .25s;position:relative
+}
+.drop-zone:hover,.drop-zone.over{
+  border-color:#1A7A4A;background:linear-gradient(135deg,#E8F5EE,#D8F0E4);
+  transform:scale(1.005)
+}
+.drop-zone .icon-upload{
+  width:64px;height:64px;background:#E8F5EE;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 16px;font-size:28px;color:#1A7A4A
+}
+.drop-zone h3{font-size:15px;font-weight:600;color:#1a2e22;margin-bottom:6px}
+.drop-zone p{font-size:12px;color:#7A9A88}
+.drop-zone .formats{
+  display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:12px
+}
+.fmt-badge{
+  background:#E8F5EE;color:#1A7A4A;border-radius:6px;
+  padding:3px 9px;font-size:11px;font-weight:600
+}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.preview-box{display:none}
+.preview-img{
+  max-width:100%;max-height:240px;
+  border-radius:10px;border:1px solid #D0DDD6;
+  display:block;margin:0 auto 16px;
+  box-shadow:0 4px 12px rgba(0,0,0,.08)
+}
+.preview-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* ─── FILE QUEUE ────────────────────────────────────────────────────────────── */
+.file-queue{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+.fq-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-radius:10px;
+  background:#F5FAF7;border:1px solid #D0E8D8;
+  font-size:13px;transition:all .2s
+}
+.fq-item.processing{background:#EAF1FF;border-color:#B3CDED}
+.fq-item.done{background:#E8F5EE;border-color:#80C89A}
+.fq-item.error{background:#FEECEC;border-color:#F5BABA}
+.fq-icon{font-size:18px;flex-shrink:0}
+.fq-name{flex:1;font-weight:500;color:#1a2e22;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fq-status{font-size:11px;font-weight:600;flex-shrink:0}
+.fq-status.pending{color:#7A9A88}
+.fq-status.processing{color:#1A4A8A}
+.fq-status.done{color:#0D5C2E}
+.fq-status.error{color:#8B1A1A}
+.fq-progress{
+  width:100%;height:4px;background:#D0E8D8;border-radius:2px;margin-top:6px;overflow:hidden
+}
+.fq-bar{height:100%;background:linear-gradient(90deg,#1E7A3A,#3DAA45);border-radius:2px;
+  transition:width .4s;width:0%}
+.batch-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;align-items:center}
+.batch-counter{font-size:12px;color:#5A8A6A;margin-left:auto}
+
+/* ─── BARRE PROGRESSION GLOBALE ─────────────────────────────────────────────── */
+.global-progress-wrap{
+  display:none;margin-top:16px;
+  background:#E8F5EE;border:1px solid #B0D8BC;
+  border-radius:12px;padding:14px 18px;
+}
+.gp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.gp-label{font-size:13px;font-weight:600;color:#0D5C2E}
+.gp-pct{font-size:22px;font-weight:800;color:#1E7A3A;font-variant-numeric:tabular-nums}
+.gp-track{
+  width:100%;height:14px;background:#D0E8D8;
+  border-radius:7px;overflow:hidden;
+}
+.gp-fill{
+  height:100%;width:0%;border-radius:7px;
+  background:linear-gradient(90deg,#1E7A3A,#4CBB52);
+  transition:width .5s cubic-bezier(.4,0,.2,1);
+  position:relative;
+}
+.gp-fill::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.25) 50%,transparent 100%);
+  animation:shimmer 1.4s infinite;
+}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.gp-footer{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:#5A8A6A}
+
+/* ─── BUTTONS ───────────────────────────────────────────────────────────────── */
+.btn{
+  padding:10px 20px;border-radius:9px;font-size:13px;
+  font-weight:600;cursor:pointer;display:inline-flex;
+  align-items:center;gap:8px;border:none;
+  transition:all .18s;font-family:inherit;letter-spacing:-.01em
+}
+.btn-green{background:linear-gradient(135deg,#1E7A3A,#0D5C2E);color:#fff;box-shadow:0 2px 8px rgba(14,92,46,.35)}
+.btn-green:hover{background:linear-gradient(135deg,#2A9A4E,#1A6A34);box-shadow:0 4px 14px rgba(14,92,46,.45);transform:translateY(-1px)}
+.btn-green:active{transform:none;box-shadow:none}
+.btn-orange{background:#E8690A;color:#fff;box-shadow:0 2px 6px rgba(232,105,10,.3)}
+.btn-orange:hover{background:#C45508;box-shadow:0 4px 12px rgba(232,105,10,.4);transform:translateY(-1px)}
+.btn-outline{
+  background:#fff;border:1.5px solid #C5D6CC;
+  color:#2C4A38;box-shadow:0 1px 3px rgba(0,0,0,.06)
+}
+.btn-outline:hover{background:#F0F7F3;border-color:#8AB89A}
+.btn-danger{background:#FFF0F0;border:1.5px solid #F5BABA;color:#8B1A1A}
+.btn-danger:hover{background:#FEECEC}
+/* Ligne de total — visible mais exclue de l'export */
+tr.total-row{background:#FFF8E8!important;opacity:.75}
+tr.total-row td{color:#8A6000!important}
+.total-badge{
+  display:inline-block;background:#F5A020;color:#fff;
+  font-size:9px;font-weight:700;border-radius:4px;
+  padding:1px 5px;margin-left:4px;vertical-align:middle;letter-spacing:.5px
+}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:7px}
+
+/* ─── STATUS / TOAST ────────────────────────────────────────────────────────── */
+.status-box{
+  display:none;align-items:center;gap:10px;
+  padding:13px 16px;border-radius:10px;font-size:13px;font-weight:500
+}
+.status-box.info{background:linear-gradient(135deg,#E0F5E8,#D0F0DC);border:1px solid #80C89A;color:#0A4020}
+.status-box.error{background:#FEECEC;border:1px solid #F5BABA;color:#8B1A1A}
+.status-box.loading{background:#EAF1FF;border:1px solid #B3CDED;color:#1A4A8A}
+.spinner{
+  width:16px;height:16px;
+  border:2.5px solid rgba(26,74,138,.2);
+  border-top-color:#1A4A8A;border-radius:50%;
+  animation:spin .7s linear infinite;flex-shrink:0
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Toast notifications */
+#toast-container{
+  position:fixed;bottom:24px;right:24px;
+  display:flex;flex-direction:column;gap:10px;z-index:9999
+}
+.toast{
+  padding:12px 18px;border-radius:10px;
+  font-size:13px;font-weight:500;
+  display:flex;align-items:center;gap:10px;
+  box-shadow:0 4px 16px rgba(0,0,0,.12);
+  animation:slideIn .3s ease;min-width:260px;max-width:360px
+}
+.toast.success{background:linear-gradient(135deg,#1E7A3A,#0D5C2E);color:#fff}
+.toast.error{background:#C0392B;color:#fff}
+.toast.info{background:#1A4A8A;color:#fff}
+@keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:none;opacity:1}}
+@keyframes slideOut{to{transform:translateX(110%);opacity:0}}
+
+/* ─── PHARMACIE FORM ────────────────────────────────────────────────────────── */
+.pharma-grid{display:grid;grid-template-columns:1.6fr 1.3fr 1fr 1fr;gap:14px;margin-bottom:4px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:11px;font-weight:600;color:#5A7264;text-transform:uppercase;letter-spacing:.04em}
+.fg input,.fg select{
+  padding:9px 12px;border:1.5px solid #D0DDD8;
+  border-radius:9px;font-size:13px;
+  background:#FAFCFB;color:#1a1a1a;
+  transition:border-color .15s,background .15s;font-family:inherit
+}
+.fg input:focus,.fg select:focus{
+  outline:none;border-color:#1A7A4A;background:#fff;
+  box-shadow:0 0 0 3px rgba(26,122,74,.1)
+}
+
+/* ─── TABLE ─────────────────────────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;border:1px solid #D8E8DF;border-radius:12px}
+table{width:100%;border-collapse:collapse;min-width:1060px}
+thead tr{background:linear-gradient(135deg,#1F4E78,#1A3F63)}
+th{
+  padding:10px 10px;text-align:left;
+  font-weight:600;font-size:11px;color:#fff;
+  white-space:nowrap;letter-spacing:.03em
+}
+tbody tr{border-bottom:1px solid #EEF3EF;transition:background .12s}
+tbody tr:nth-child(even){background:#FAFCFA}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#F4FAF6}
+td{padding:5px 7px;font-size:12px}
+td input{
+  border:1px solid transparent;background:transparent;
+  width:100%;font-size:12px;color:#1a1a1a;
+  padding:4px 6px;border-radius:6px;transition:all .15s;font-family:inherit
+}
+td input:focus{
+  outline:none;background:#E8F5EE;
+  border-color:#A8C9B5;
+}
+td input:hover:not(:focus){background:#F0F7F3}
+.del-btn{
+  background:none;border:none;cursor:pointer;
+  color:#C8D8D0;font-size:13px;padding:4px;
+  line-height:1;transition:color .15s;border-radius:5px
+}
+.del-btn:hover{color:#B33;background:#FEECEC}
+tfoot tr{background:linear-gradient(135deg,#E8F5EE,#D8F0E4);border-top:2px solid #1E7A3A}
+tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
+.row-num{color:#A8B8B0;font-size:11px;text-align:center;user-select:none}
+.cell-global{background:#F4FAF6;color:#6A8878;font-size:11px;padding:5px 7px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+/* Doublons */
+.dup-row{background:#FEF3E2!important}
+.dup-row:hover{background:#FDE8C8!important}
+.dup-cell input{color:#C45508!important;font-weight:700!important;background:#FDE8C8!important;border-color:#E8690A!important}
+.dup-banner{
+  background:#FEF3E2;border:1.5px solid #F5C280;border-radius:10px;
+  padding:10px 16px;font-size:12px;color:#7A3A00;
+  display:flex;align-items:center;gap:10px;margin-bottom:12px;display:none
+}
+
+/* Empty state */
+.empty-state{
+  padding:48px 24px;text-align:center;
+  color:#8AA898;display:none
+}
+.empty-state i{font-size:40px;margin-bottom:12px;display:block;opacity:.4}
+.empty-state p{font-size:13px}
+
+/* ─── EXPORT ────────────────────────────────────────────────────────────────── */
+.exp-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.stat{
+  background:linear-gradient(135deg,#F4FAF6,#EEF6F1);
+  border-radius:12px;padding:18px;text-align:center;
+  border:1px solid #D0E8DA;transition:transform .15s
+}
+.stat:hover{transform:translateY(-2px)}
+.stat .val{font-size:28px;font-weight:700;color:#1A7A4A;letter-spacing:-.02em}
+.stat .lbl{font-size:11px;color:#7A9A88;margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+.exp-option{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;border:1.5px solid #D8E8DF;
+  border-radius:12px;background:#FAFCFB;margin-bottom:12px;
+  transition:all .15s
+}
+.exp-option:hover{border-color:#A8C9B5;background:#F4FAF6;transform:translateX(2px)}
+.exp-icon{font-size:28px;margin-right:14px}
+.exp-info strong{font-size:14px;display:block;margin-bottom:3px}
+.exp-info span{font-size:12px;color:#7A9A88}
+.exp-left{display:flex;align-items:center}
+.note{
+  background:#FEF7ED;border:1px solid #F5D9A8;
+  border-radius:10px;padding:13px 16px;
+  font-size:12px;color:#5A3A00;
+  display:flex;gap:10px;align-items:flex-start;line-height:1.6
+}
+
+/* ─── CONFIG ────────────────────────────────────────────────────────────────── */
+.cfg-row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.cfg-row input{
+  flex:1;padding:10px 14px;border:1.5px solid #D0DDD8;
+  border-radius:9px;font-size:13px;font-family:monospace;
+  background:#FAFCFB;transition:all .15s
+}
+.cfg-row input:focus{
+  outline:none;border-color:#1A7A4A;background:#fff;
+  box-shadow:0 0 0 3px rgba(26,122,74,.1)
+}
+.badge-ok{
+  display:none;background:#E8F5EE;color:#0F4F2E;
+  font-size:11px;padding:5px 12px;border-radius:20px;
+  font-weight:600;align-items:center;gap:6px;
+  border:1px solid #A8C9B5
+}
+.proxy-status{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;border-radius:9px;
+  font-size:12px;font-weight:500;margin-top:8px
+}
+.proxy-status.ok{background:#E8F5EE;color:#0F4F2E;border:1px solid #A8C9B5}
+.proxy-status.ko{background:#FEECEC;color:#8B1A1A;border:1px solid #F5BABA}
+
+/* ─── MODAL CONFIRM ─────────────────────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);
+  z-index:1000;display:none;align-items:center;justify-content:center;
+  animation:fadeIn .15s ease
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:#fff;border-radius:16px;padding:28px;
+  max-width:380px;width:90%;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);
+  animation:popIn .2s ease
+}
+@keyframes popIn{from{transform:scale(.94);opacity:0}to{transform:none;opacity:1}}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:8px}
+.modal p{font-size:13px;color:#6B7C72;margin-bottom:22px;line-height:1.6}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end}
+
+/* ─── RESPONSIVE ────────────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .pharma-grid{grid-template-columns:1fr}
+  .exp-stats{grid-template-columns:1fr}
+  .step span{display:none}
+  .step{padding:14px 16px}
+}
+
+/* ─── MODAL BIENVENUE ───────────────────────────────────────────────────────── */
+#welcome-overlay{
+  position:fixed;inset:0;z-index:8000;
+  background:rgba(5,30,15,.7);backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;
+  animation:fadeIn .3s ease;
+}
+#welcome-overlay.hidden{display:none}
+.welcome-box{
+  background:#fff;border-radius:20px;padding:0;
+  width:100%;max-width:520px;
+  box-shadow:0 24px 80px rgba(0,0,0,.35);
+  overflow:hidden;animation:popIn .35s ease;
+}
+.welcome-header{
+  background:linear-gradient(135deg,#1E7A3A 0%,#0D5C2E 100%);
+  padding:32px 36px 24px;text-align:center;position:relative;
+}
+.welcome-header::after{
+  content:'';position:absolute;bottom:-1px;left:0;right:0;height:24px;
+  background:#fff;border-radius:24px 24px 0 0;
+}
+.welcome-logo-text{
+  font-family:'Arial Black',Arial,sans-serif;
+  font-size:36px;font-weight:900;color:#fff;letter-spacing:1px;
+}
+.welcome-tagline{font-size:12px;color:rgba(255,255,255,.75);margin-top:4px;letter-spacing:.5px}
+.welcome-body{padding:28px 36px 32px;text-align:center}
+.welcome-icon{font-size:42px;margin-bottom:12px}
+.welcome-title{font-size:20px;font-weight:700;color:#0D5C2E;margin-bottom:10px}
+.welcome-msg{font-size:14px;color:#4A6A56;line-height:1.75;margin-bottom:24px}
+.welcome-features{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;text-align:left;
+}
+.wf{
+  background:#F0FAF4;border:1px solid #C8E4D0;border-radius:10px;
+  padding:11px 14px;display:flex;align-items:center;gap:10px;
+  font-size:12px;font-weight:600;color:#1A5C32;
+}
+.wf i{color:#1E7A3A;font-size:15px;flex-shrink:0}
+.welcome-btn{
+  width:100%;padding:14px;background:linear-gradient(135deg,#1E7A3A,#0D5C2E);
+  color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;
+  cursor:pointer;transition:all .2s;font-family:inherit;letter-spacing:.3px;
+}
+.welcome-btn:hover{background:linear-gradient(135deg,#2A9A4E,#1A6A34);transform:translateY(-1px);box-shadow:0 6px 20px rgba(14,92,46,.4)}
+.welcome-footer{font-size:11px;color:#9AB8A8;margin-top:12px}
+</style>
+</head>
+<body>
+
+
+<!-- ═══ MODAL BIENVENUE ═══════════════════════════════════════════════════════ -->
+<div id="welcome-overlay">
+  <div class="welcome-box">
+    <div class="welcome-header">
+      <div class="welcome-logo-text">AMAT-CI</div>
+      <div class="welcome-tagline">Assistance Mutuelle des Agents du Trésor de Côte d'Ivoire</div>
+    </div>
+    <div class="welcome-body">
+      <div class="welcome-icon">👋</div>
+      <div class="welcome-title">Bienvenue sur la plateforme</div>
+      <div class="welcome-msg">
+        Numérisez vos factures pharmaceutiques rapidement et précisément
+        grâce à l'intelligence artificielle.<br>
+        <strong style="color:#1E7A3A">Importez, vérifiez, exportez</strong> — en quelques clics.
+      </div>
+      <div class="welcome-features">
+        <div class="wf"><i class="fa fa-magic"></i> Analyse IA automatique</div>
+        <div class="wf"><i class="fa fa-layer-group"></i> Jusqu'à 10 factures</div>
+        <div class="wf"><i class="fa fa-building"></i> Tri par pharmacie</div>
+        <div class="wf"><i class="fa fa-file-excel"></i> Export Excel + TXT</div>
+      </div>
+      <button class="welcome-btn" onclick="fermerBienvenue()">
+        <i class="fa fa-arrow-right"></i>&nbsp; Commencer
+      </button>
+      <div class="welcome-footer">DGTCP · Direction Générale du Trésor et de la Comptabilité Publique</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HEADER ═══════════════════════════════════════════════════════════════ -->
+<div class="topbar">
+  <div class="logo-amat">
+    <svg viewBox="0 0 400 90" width="400" height="90" xmlns="http://www.w3.org/2000/svg" aria-label="AMAT-CI">
+      <defs>
+        <linearGradient id="gA" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#4CBB52"/>
+          <stop offset="100%" style="stop-color:#2E9A3A"/>
+        </linearGradient>
+        <linearGradient id="gText" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#1A6A2A"/>
+          <stop offset="100%" style="stop-color:#0D4A1C"/>
+        </linearGradient>
+      </defs>
+
+      <!-- ═══ ICÔNE A STYLISÉ ═══ -->
+      <!-- Jambe gauche du A (trapèze épais) -->
+      <polygon points="4,80 34,4 50,4 24,80" fill="url(#gA)"/>
+      <!-- Jambe droite du A -->
+      <polygon points="96,80 66,4 82,4 106,80" fill="url(#gA)"/>
+      <!-- Barre transversale -->
+      <rect x="20" y="50" width="70" height="15" rx="3" fill="url(#gA)"/>
+
+      <!-- ═══ ACCENT ORANGE (feuille en haut à gauche) ═══ -->
+      <path d="M32,16 Q22,6 28,2 Q40,0 42,14 Q38,20 32,16Z" fill="#E8832A"/>
+      <path d="M30,12 Q24,8 27,4 Q35,3 37,12 Q34,16 30,12Z" fill="#F5A04A" opacity="0.7"/>
+
+      <!-- ═══ PERSONNAGES (au-dessus et dans la barre) ═══ -->
+
+      <!-- Figure gauche — verte -->
+      <!-- Tête -->
+      <circle cx="35" cy="34" r="5.5" fill="#1E8A2A"/>
+      <!-- Corps -->
+      <rect x="32.5" y="39" width="5" height="12" rx="2" fill="#1E8A2A"/>
+      <!-- Bras gauche levé -->
+      <path d="M32,40 Q24,34 22,28" stroke="#1E8A2A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <!-- Bras droit -->
+      <path d="M38,40 Q44,36 46,33" stroke="#1E8A2A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <!-- Jambes -->
+      <path d="M33,51 L30,60" stroke="#1E8A2A" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M37,51 L40,60" stroke="#1E8A2A" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+      <!-- Figure centrale — orange (bras grands ouverts vers le haut) -->
+      <!-- Tête -->
+      <circle cx="55" cy="30" r="6.5" fill="#E8832A"/>
+      <!-- Corps -->
+      <rect x="52" y="36" width="6" height="14" rx="2.5" fill="#E8832A"/>
+      <!-- Bras gauche levé haut -->
+      <path d="M52,38 Q40,28 36,20" stroke="#E8832A" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <!-- Bras droit levé haut -->
+      <path d="M58,38 Q70,28 74,20" stroke="#E8832A" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <!-- Jambes -->
+      <path d="M53,50 L49,62" stroke="#E8832A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M57,50 L61,62" stroke="#E8832A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+
+      <!-- Figure droite — verte -->
+      <!-- Tête -->
+      <circle cx="74" cy="34" r="5.5" fill="#1E8A2A"/>
+      <!-- Corps -->
+      <rect x="71.5" y="39" width="5" height="12" rx="2" fill="#1E8A2A"/>
+      <!-- Bras gauche -->
+      <path d="M71,40 Q65,36 64,33" stroke="#1E8A2A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <!-- Bras droit levé -->
+      <path d="M77,40 Q84,34 87,28" stroke="#1E8A2A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <!-- Jambes -->
+      <path d="M72,51 L69,60" stroke="#1E8A2A" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M76,51 L79,60" stroke="#1E8A2A" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+      <!-- ═══ TEXTE AMAT-CI ═══ -->
+      <text x="118" y="55"
+        font-family="'Arial Black','Arial Bold',Arial,sans-serif"
+        font-size="38" font-weight="900"
+        fill="url(#gText)"
+        letter-spacing="1">AMAT-CI</text>
+
+      <!-- Trait de séparation sous AMAT-CI -->
+      <rect x="119" y="60" width="272" height="1.5" fill="#3DAA45" opacity="0.4" rx="1"/>
+
+      <!-- Sous-titre -->
+      <text x="120" y="74"
+        font-family="Arial,Helvetica,sans-serif"
+        font-size="9.5" fill="#2A7A38"
+        letter-spacing="0.4">Assistance Mutuelle des Agents du Trésor de Côte d'Ivoire</text>
+    </svg>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-text">
+    <h1>Numérisation des factures pharmaceutiques</h1>
+    <p>Direction Générale du Trésor et de la Comptabilité Publique · DGTCP</p>
+  </div>
+  <div class="topbar-badge" id="server-badge" style="display:none">
+    <div class="dot"></div>
+    <span>Serveur connecté</span>
+  </div>
+</div>
+
+<!-- ═══ STEPPER ══════════════════════════════════════════════════════════════ -->
+<div class="stepper">
+  <div class="step active" id="step-upload" onclick="go('upload')">
+    <div class="step-num">1</div>
+    <span><i class="fa fa-upload" style="margin-right:6px"></i>Importer</span>
+  </div>
+  <div class="step-sep">›</div>
+  <div class="step" id="step-saisie" onclick="go('saisie')">
+    <div class="step-num">2</div>
+    <span><i class="fa fa-table" style="margin-right:6px"></i>Vérifier / Corriger</span>
+    <span class="step-badge" id="badge-rows" style="display:none">0</span>
+  </div>
+  <div class="step-sep">›</div>
+  <div class="step" id="step-export" onclick="go('export')">
+    <div class="step-num">3</div>
+    <span><i class="fa fa-download" style="margin-right:6px"></i>Exporter</span>
+  </div>
+  <div style="flex:1"></div>
+  <div class="step" id="step-config" onclick="go('config')" style="border-bottom:none;color:#8AA898">
+    <i class="fa fa-cog"></i>
+    <span>Configuration</span>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- ═══ MODAL CONFIRMATION ════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3><i class="fa fa-trash" style="color:#B33;margin-right:8px"></i>Supprimer cette ligne ?</h3>
+    <p>Cette action est irréversible. La ligne sera définitivement supprimée du tableau.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-danger" id="modal-confirm-btn">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ─── ONGLET IMPORTER ──────────────────────────────────────────────────── -->
+  <div id="screen-upload" class="screen active">
+    <div class="card">
+      <div class="card-title"><i class="fa fa-file-invoice"></i> Document à analyser</div>
+      <div class="drop-zone" id="dz" ondragover="doDrag(event)" ondragleave="doLeave()" ondrop="doDrop(event)">
+        <div class="icon-upload"><i class="fa fa-cloud-upload-alt"></i></div>
+        <h3>Glissez vos factures ici</h3>
+        <p>ou <strong style="color:#1A7A4A">cliquez pour sélectionner</strong> (jusqu'à 10 fichiers)</p>
+        <div class="formats">
+          <span class="fmt-badge">JPG</span>
+          <span class="fmt-badge">PNG</span>
+          <span class="fmt-badge">PDF</span>
+          <span class="fmt-badge" style="background:#FEF4E8;color:#8A4400">Max 10 fichiers</span>
+          <span class="fmt-badge" style="background:#FEF4E8;color:#8A4400">20 Mo / fichier</span>
+        </div>
+        <input type="file" accept="image/*,.pdf" onchange="onFile(event)" id="finput" multiple>
+      </div>
+
+      <!-- File queue -->
+      <div id="fq-container" style="display:none">
+        <div class="file-queue" id="fq-list"></div>
+        <div class="batch-actions">
+          <button class="btn btn-green" id="btnext" onclick="extractAll()">
+            <i class="fa fa-magic"></i> Analyser tout avec Claude
+          </button>
+          <button class="btn btn-outline" onclick="resetFile()">
+            <i class="fa fa-redo"></i> Recommencer
+          </button>
+          <span class="batch-counter" id="batch-counter"></span>
+        </div>
+      </div>
+    </div>
+    <!-- Barre de progression globale -->
+    <div class="global-progress-wrap" id="global-progress">
+      <div class="gp-header">
+        <span class="gp-label" id="gp-label">Analyse en cours…</span>
+        <span class="gp-pct" id="gp-pct">0%</span>
+      </div>
+      <div class="gp-track">
+        <div class="gp-fill" id="gp-fill"></div>
+      </div>
+      <div class="gp-footer">
+        <span id="gp-current">Préparation…</span>
+        <span id="gp-count">0 / 0 factures</span>
+      </div>
+    </div>
+
+    <div class="status-box" id="st-upload">
+      <div class="spinner" id="spin-upload" style="display:none"></div>
+      <span id="st-text"></span>
+    </div>
+  </div>
+
+  <!-- ─── ONGLET SAISIE ────────────────────────────────────────────────────── -->
+  <div id="screen-saisie" class="screen">
+    <div class="card">
+      <div class="card-title"><i class="fa fa-building"></i> Informations pharmacie</div>
+      <div class="pharma-grid">
+        <div class="fg">
+          <label>Nom de la pharmacie</label>
+          <input id="f-pharma" placeholder="Ex: PHARMACIE SAINTE BEATRICE" oninput="autoSave();updateGlobalCells()">
+        </div>
+        <div class="fg">
+          <label>N° Facture</label>
+          <input id="f-facture" placeholder="Ex: 0105-3105-2614736" oninput="autoSave();updateGlobalCells()">
+        </div>
+        <div class="fg">
+          <label>Mois</label>
+          <select id="f-mois" onchange="autoSave()">
+            <option value="">— Mois —</option>
+            <option>Janvier</option><option>Février</option><option>Mars</option>
+            <option>Avril</option><option>Mai</option><option>Juin</option>
+            <option>Juillet</option><option>Août</option><option>Septembre</option>
+            <option>Octobre</option><option>Novembre</option><option>Décembre</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Année</label>
+          <input type="number" id="f-annee" value="2025" oninput="autoSave()">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <i class="fa fa-list"></i> Lignes de facturation
+        <span style="margin-left:auto;font-size:11px;color:#A8B8B0;font-weight:400" id="row-count-label"></span>
+      </div>
+      <div class="dup-banner" id="dup-banner">
+        <i class="fa fa-exclamation-triangle" style="color:#E8690A;flex-shrink:0"></i>
+        <span id="dup-msg"></span>
+        <button class="btn btn-outline btn-sm" style="margin-left:auto;border-color:#E8690A;color:#C45508" onclick="removeDuplicates()">
+          <i class="fa fa-filter"></i> Supprimer les doublons
+        </button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:30px"></th>
+            <th style="width:30px"></th>
+            <th>PHARMACIE</th><th>N° FACTURE</th><th>Date</th><th>Réf. bon</th>
+            <th>Salarié</th><th>Matricule</th><th>Patient</th>
+            <th>Total bon</th><th>Taux</th><th>Comptant</th><th>Crédit</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+          <tfoot><tr>
+            <td colspan="10" style="text-align:right;font-size:11px;color:#7A9A88;font-weight:500">TOTAUX</td>
+            <td id="t-tot" style="color:#0F4F2E"></td>
+            <td></td>
+            <td id="t-cpt" style="color:#0F4F2E"></td>
+            <td id="t-crd" style="color:#E8690A"></td>
+          </tr></tfoot>
+        </table>
+        <div class="empty-state" id="empty-state">
+          <i class="fa fa-inbox"></i>
+          <p>Aucune ligne — analysez une facture ou ajoutez une ligne manuellement</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;align-items:center">
+        <button class="btn btn-outline btn-sm" onclick="addRow()">
+          <i class="fa fa-plus"></i> Ajouter une ligne
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="clearAll()" style="color:#B33;border-color:#F5BABA">
+          <i class="fa fa-trash"></i> Tout effacer
+        </button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px">
+      <button class="btn btn-outline" onclick="go('upload')"><i class="fa fa-arrow-left"></i> Retour</button>
+      <button class="btn btn-green" onclick="go('export')"><i class="fa fa-arrow-right"></i> Vers l'export</button>
+    </div>
+  </div>
+
+  <!-- ─── ONGLET EXPORT ────────────────────────────────────────────────────── -->
+  <div id="screen-export" class="screen">
+    <div class="exp-stats">
+      <div class="stat">
+        <div class="val" id="s-n">0</div>
+        <div class="lbl">Lignes</div>
+      </div>
+      <div class="stat">
+        <div class="val" id="s-tot">0 F</div>
+        <div class="lbl">Montant total</div>
+      </div>
+      <div class="stat">
+        <div class="val" id="s-crd">0 F</div>
+        <div class="lbl">Part AMAT-CI</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="fa fa-download"></i> Télécharger</div>
+      <div class="exp-option">
+        <div class="exp-left">
+          <span class="exp-icon">📊</span>
+          <div class="exp-info">
+            <strong>Fichier Excel (.xlsx)</strong>
+            <span>En-têtes bleu · Onglet = pharmacie · Formules SUM automatiques</span>
+          </div>
+        </div>
+        <button class="btn btn-green" onclick="exportExcel()"><i class="fa fa-download"></i> Télécharger</button>
+      </div>
+      <div class="exp-option">
+        <div class="exp-left">
+          <span class="exp-icon">📄</span>
+          <div class="exp-info">
+            <strong>Fichier texte (.txt)</strong>
+            <span>Délimité par tabulations · Compatible systèmes legacy</span>
+          </div>
+        </div>
+        <button class="btn btn-orange" onclick="exportTxt()"><i class="fa fa-download"></i> Télécharger</button>
+      </div>
+      <!-- Résumé par pharmacie -->
+      <div id="s-groupes" style="display:none;background:#F0FAF4;border:1px solid #B0D8BC;border-radius:10px;padding:12px 16px;margin-bottom:4px"></div>
+
+      <div class="note">
+        <i class="fa fa-info-circle" style="color:#E8690A;margin-top:2px;flex-shrink:0"></i>
+        ✅ Un fichier <strong>Excel + TXT par pharmacie</strong> est généré automatiquement. Patients en MAJUSCULES, onglet Excel nommé d'après la pharmacie. Le tableau est vidé après téléchargement.
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="go('saisie')"><i class="fa fa-arrow-left"></i> Retour à la vérification</button>
+      <button class="btn btn-green" style="padding:11px 28px;font-size:14px;gap:8px" onclick="exportAll()">
+        <i class="fa fa-check-circle"></i> Télécharger tout et terminer
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── ONGLET CONFIG ────────────────────────────────────────────────────── -->
+  <div id="screen-config" class="screen">
+    <div class="card">
+      <div class="card-title"><i class="fa fa-server"></i> Adresse du serveur proxy</div>
+      <p style="font-size:13px;color:#7A9A88;margin-bottom:14px;line-height:1.6">
+        Le serveur proxy relaie vos images vers Claude en toute sécurité.
+        Si vous utilisez ce poste, l'adresse est <strong>http://localhost:3000</strong>.
+      </p>
+      <div class="cfg-row">
+        <input type="text" id="proxy-url" placeholder="http://localhost:3000" autocomplete="off">
+        <button class="btn btn-outline" onclick="testProxy()"><i class="fa fa-plug"></i> Tester</button>
+        <button class="btn btn-green" onclick="saveProxy()"><i class="fa fa-check"></i> Enregistrer</button>
+      </div>
+      <div class="badge-ok" id="badge-ok"><i class="fa fa-check-circle"></i> Adresse enregistrée</div>
+      <div class="proxy-status" id="proxy-status" style="display:none"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="fa fa-sliders-h"></i> Préférences</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="fg" style="max-width:220px">
+          <label>Taux de remboursement par défaut (%)</label>
+          <input type="number" id="pref-taux" value="80" min="0" max="100">
+        </div>
+      </div>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,#F4FAF6,#EEF6F1);border-color:#A8C9B5">
+      <div class="card-title" style="color:#1A7A4A"><i class="fa fa-shield-alt"></i> Sécurité</div>
+      <p style="font-size:13px;color:#2C4A38;line-height:1.8">
+        La clé API Anthropic est stockée <strong>uniquement sur le serveur</strong>, jamais dans votre navigateur.
+        Cette plateforme ne fait que transmettre vos images — votre responsable informatique
+        peut consulter les journaux depuis le serveur.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ═══ STATE ═══════════════════════════════════════════════════════════════════
+let rows = [];
+let imgData = null;
+let imgType = null;
+// File queue pour traitement multi-factures
+let fileQueue = []; // [{file, name, size, data, type, status, lines}]
+let pendingDeleteIdx = null;
+let navTimer = null; // Fix #5 : annuler auto-navigation si l'utilisateur navigue manuellement
+
+// ═══ NAVIGATION ══════════════════════════════════════════════════════════════
+function go(t) {
+  clearTimeout(navTimer); // Fix #5 : annuler toute auto-navigation en cours
+  const steps = ['upload','saisie','export','config'];
+  // Fix #2 : restaurer les numéros avant de recalculer l'état
+  steps.forEach((s,i) => {
+    const e = document.getElementById('step-'+s);
+    if(!e) return;
+    e.classList.remove('active','done');
+    const numEl = e.querySelector('.step-num');
+    if(numEl && i < 3) numEl.textContent = i+1; // restaure 1, 2, 3
+  });
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+  document.getElementById('screen-'+t)?.classList.add('active');
+  const el = document.getElementById('step-'+t);
+  if(el) el.classList.add('active');
+  const idx = steps.indexOf(t);
+  steps.slice(0,idx).forEach(s => {
+    const e = document.getElementById('step-'+s);
+    if(e) { e.classList.add('done'); e.querySelector('.step-num').innerHTML='<i class="fa fa-check" style="font-size:10px"></i>'; }
+  });
+  if(t==='upload') resetFile();
+  if(t==='export') refreshExportStats();
+}
+
+// ═══ TOAST ═══════════════════════════════════════════════════════════════════
+function toast(msg, type='success', duration=3000) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  const icon = type==='success'?'check-circle':type==='error'?'times-circle':'info-circle';
+  el.innerHTML = `<i class="fa fa-${icon}"></i> ${msg}`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => {
+    el.style.animation = 'slideOut .3s ease forwards';
+    setTimeout(() => el.remove(), 300);
+  }, duration);
+}
+
+// ═══ UPLOAD ══════════════════════════════════════════════════════════════════
+function doDrag(e){e.preventDefault();document.getElementById('dz').classList.add('over')}
+function doLeave(){document.getElementById('dz').classList.remove('over')}
+function doDrop(e){
+  e.preventDefault();doLeave();
+  const files=[...e.dataTransfer.files].filter(f=>f.type.startsWith('image/')||f.type==='application/pdf');
+  if(files.length) loadFiles(files);
+}
+function onFile(e){
+  const files=[...e.target.files];
+  if(files.length) loadFiles(files);
+}
+
+function loadFiles(files) {
+  // Max 10 fichiers
+  if(files.length > 10){ toast('Maximum 10 factures à la fois.','error'); files=files.slice(0,10); }
+  const oversized = files.filter(f=>f.size>20*1024*1024);
+  if(oversized.length){ toast(oversized.length+' fichier(s) ignoré(s) — trop volumineux (max 20 Mo).','error'); }
+  files = files.filter(f=>f.size<=20*1024*1024);
+  if(!files.length) return;
+
+  fileQueue = [];
+  let loaded = 0;
+  files.forEach((f,i)=>{
+    const entry = {file:f, name:f.name, size:f.size, data:null, type:f.type, status:'pending', lines:0};
+    fileQueue.push(entry);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      entry.data = ev.target.result.split(',')[1];
+      loaded++;
+      if(loaded===files.length) renderQueue();
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+function renderQueue(){
+  document.getElementById('dz').style.display='none';
+  document.getElementById('fq-container').style.display='block';
+  const list=document.getElementById('fq-list');
+  list.innerHTML='';
+  fileQueue.forEach((entry,i)=>{
+    const icons={'pending':'🕐','processing':'⏳','done':'✅','error':'❌'};
+    const labels={'pending':'En attente','processing':'Traitement…','done':'Terminé','error':'Erreur'};
+    const div=document.createElement('div');
+    div.className='fq-item '+entry.status;
+    div.id='fq-item-'+i;
+    div.innerHTML=`<span class="fq-icon">${icons[entry.status]}</span>
+      <span class="fq-name" title="${entry.name}">${entry.name}</span>
+      <span class="fq-status ${entry.status}" id="fq-st-${i}">${labels[entry.status]}</span>
+      <div style="width:100%;grid-column:1/-1">
+        <div class="fq-progress" id="fq-prog-${i}" style="${entry.status==='processing'?'':'display:none'}">
+          <div class="fq-bar" id="fq-bar-${i}" style="width:${entry.status==='done'?'100':0}%"></div>
+        </div>
+      </div>`;
+    list.appendChild(div);
+  });
+  const total=fileQueue.length;
+  document.getElementById('batch-counter').textContent=total+' fichier'+(total>1?'s':'')+' sélectionné'+(total>1?'s':'');
+  const btn=document.getElementById('btnext');
+  btn.disabled=false;
+  btn.innerHTML='<i class="fa fa-magic"></i> Analyser '+total+' facture'+(total>1?'s':'')+' avec Claude';
+}
+
+function setQueueItemStatus(i, status, extra){
+  const icons={'pending':'🕐','processing':'⏳','done':'✅','error':'❌'};
+  const labels={'pending':'En attente','processing':'Traitement…','done':extra||'Terminé','error':extra||'Erreur'};
+  const item=document.getElementById('fq-item-'+i);
+  const st=document.getElementById('fq-st-'+i);
+  const prog=document.getElementById('fq-prog-'+i);
+  const bar=document.getElementById('fq-bar-'+i);
+  if(!item)return;
+  item.className='fq-item '+status;
+  item.querySelector('.fq-icon').textContent=icons[status];
+  st.className='fq-status '+status;
+  st.textContent=labels[status];
+  if(status==='processing'&&prog){prog.style.display='';setTimeout(()=>{if(bar)bar.style.width='85%';},200);}
+  if(status==='done'&&bar){bar.style.width='100%';}
+}
+
+function resetFile() {
+  imgData=null; imgType=null; fileQueue=[];
+  document.getElementById('dz').style.display='';
+  document.getElementById('fq-container').style.display='none';
+  document.getElementById('fq-list').innerHTML='';
+  document.getElementById('finput').value='';
+  hideProgress();
+  setStatus('','');
+}
+
+// ═══ PROGRESSION GLOBALE ═════════════════════════════════════════════════════
+function showProgress(current,total,label){
+  const wrap=document.getElementById('global-progress');
+  const fill=document.getElementById('gp-fill');
+  const pct=document.getElementById('gp-pct');
+  const lbl=document.getElementById('gp-label');
+  const cur=document.getElementById('gp-current');
+  const cnt=document.getElementById('gp-count');
+  if(!wrap)return;
+  const p=total>0?Math.round((current/total)*100):0;
+  wrap.style.display='block';
+  fill.style.width=p+'%';
+  pct.textContent=p+'%';
+  lbl.textContent=current>=total?'Traitement terminé ✓':'Analyse en cours…';
+  cur.textContent=label||'';
+  cnt.textContent=current+' / '+total+' facture'+(total>1?'s':'');
+}
+function hideProgress(){
+  const wrap=document.getElementById('global-progress');
+  if(wrap) wrap.style.display='none';
+}
+
+// ═══ EXTRACTION MULTI-FICHIERS ══════════════════════════════════════════════
+async function extractAll() {
+  if(!fileQueue.length){toast('Aucun fichier chargé.','error');return;}
+  const proxyUrl=(localStorage.getItem('amat_proxy')||window.location.origin).replace(/\/$/,'');
+
+  const btn=document.getElementById('btnext');
+  btn.disabled=true;
+  showProgress(0,fileQueue.length,'Démarrage…');
+
+  let totalAdded=0;
+  let errors=0;
+
+  for(let i=0;i<fileQueue.length;i++){
+    const entry=fileQueue[i];
+    setQueueItemStatus(i,'processing');
+    showProgress(i,fileQueue.length,entry.name);
+    setStatus('loading','Analyse '+(i+1)+'/'+fileQueue.length+' — '+entry.name);
+
+    const prompt=`Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire). Analyse cette image de facture pharmaceutique.
+
+RÈGLES IMPORTANTES :
+1. Champ "patient" : mets le nom du patient/bénéficiaire s'il est indiqué sur la facture. Sinon laisse vide.
+2. Champ "salarie" : mets le nom de l'adhérent/salarié s'il est indiqué. Sinon laisse vide.
+3. Champ "taux" : toujours laisser à null (vide), même si une valeur est visible.
+4. Les "ref_bon" doivent être uniques par ligne — ne pas dupliquer.
+5. NE PAS inclure les lignes de total/sous-total/cumul — seulement les lignes de détail.
+
+Retourne UNIQUEMENT un JSON valide (rien avant, rien après) :
+{
+  "pharmacie": "NOM DE LA PHARMACIE EN MAJUSCULES",
+  "numero_facture": "numéro de facture détecté ou vide",
+  "mois": "mois détecté ou vide",
+  "annee": "année ou 2025",
+  "lignes": [
+    {
+      "date": "JJ/MM/AAAA",
+      "ref_bon": "",
+      "salarie": "adhérent/salarié ou vide",
+      "matricule": "",
+      "patient": "bénéficiaire/patient en MAJUSCULES ou vide",
+      "total_bon": 0,
+      "taux": null,
+      "comptant": 0,
+      "credit": 0
+    }
+  ]
+}
+Valeurs illisibles = chaîne vide ou 0. Noms TOUJOURS en MAJUSCULES.`;
+
+    try{
+      const resp=await fetch(proxyUrl+'/analyser',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          max_tokens:8096,
+          messages:[{role:'user',content:[
+            {type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}},
+            {type:'text',text:prompt}
+          ]}]
+        })
+      });
+      if(!resp.ok){
+        let errMsg='Erreur serveur '+resp.status;
+        try{const e=await resp.json();errMsg=e.error?.message||e.error||errMsg;}catch(_){}
+        throw new Error(errMsg);
+      }
+      const data=await resp.json();
+      const text=(data.content||[]).map(x=>x.text||'').join('');
+      const clean=text.replace(/```json\n?|```/g,'').trim();
+      if(!clean) throw new Error('Réponse vide');
+      let parsed;
+      try{parsed=JSON.parse(clean);}
+      catch(je){
+        console.error('Réponse non-JSON:',text.substring(0,200));
+        throw new Error('Réponse non analysable');
+      }
+
+      // Infos pharmacie (seulement si vides)
+      if(parsed.pharmacie&&!document.getElementById('f-pharma').value)
+        document.getElementById('f-pharma').value=parsed.pharmacie;
+      if(parsed.numero_facture&&!document.getElementById('f-facture').value)
+        document.getElementById('f-facture').value=parsed.numero_facture;
+      if(parsed.mois&&!document.getElementById('f-mois').value)
+        document.getElementById('f-mois').value=parsed.mois;
+      if(parsed.annee) document.getElementById('f-annee').value=parsed.annee;
+
+      const nouvelles=parsed.lignes||[];
+      // Attacher pharmacie + numéro facture à chaque ligne
+      const pharmaNom=(parsed.pharmacie||'').toUpperCase().trim();
+      const factureNum=parsed.numero_facture||'';
+      nouvelles.forEach(r=>{
+        r.pharmacie=pharmaNom||r.pharmacie||'';
+        r.numero_facture=factureNum||r.numero_facture||'';
+      });
+      detectAndRemoveTotalRow(nouvelles);  // avant les règles métier (sinon TOTAL déplacé en patient)
+      applyBusinessRules(nouvelles);
+      rows=[...rows,...nouvelles];
+      totalAdded+=nouvelles.length;
+      entry.lines=nouvelles.length;
+
+      setQueueItemStatus(i,'done',nouvelles.length+' ligne'+(nouvelles.length>1?'s':''));
+    }catch(err){
+      console.error('Erreur fichier',entry.name,':',err.message);
+      setQueueItemStatus(i,'error',err.message.substring(0,40));
+      errors++;
+    }
+
+    // Pause courte entre fichiers pour éviter le rate-limit
+    if(i<fileQueue.length-1) await new Promise(r=>setTimeout(r,500));
+  }
+
+  updateGlobalCells();
+  renderTable();
+  autoSave();
+
+  // Barre à 100%
+  showProgress(fileQueue.length,fileQueue.length,'Terminé');
+  setTimeout(hideProgress,3000);
+
+  btn.disabled=false;
+  btn.innerHTML='<i class="fa fa-magic"></i> Relancer l\'analyse';
+
+  let msg='✓ '+totalAdded+' ligne(s) extraite(s) depuis '+fileQueue.length+' facture(s).';
+  if(errors>0) msg+=' · '+errors+' fichier(s) en erreur.';
+  setStatus(errors>0?'error':'info',msg);
+  toast(totalAdded+' lignes ajoutées','success');
+  clearTimeout(navTimer);
+  navTimer=setTimeout(()=>go('saisie'),1500);
+}
+
+function setStatus(type,msg){
+  const el=document.getElementById('st-upload');
+  const sp=document.getElementById('spin-upload');
+  if(!msg){el.style.display='none';return;}
+  el.style.display='flex';el.className='status-box '+type;
+  sp.style.display=type==='loading'?'block':'none';
+  document.getElementById('st-text').textContent=msg;
+}
+
+// ═══ TABLE ═══════════════════════════════════════════════════════════════════
+function renderTable(){
+  const tb=document.getElementById('tbody');
+  tb.innerHTML='';
+  rows.forEach((r,i)=>tb.appendChild(mkRow(r,i)));
+  updateTotals();
+  updateBadge();
+  const empty=document.getElementById('empty-state');
+  empty.style.display=rows.length===0?'block':'none';
+  const label=document.getElementById('row-count-label');
+  label.textContent=rows.length>0?rows.length+' ligne'+(rows.length>1?'s':''):'';
+  // Vérification doublons (sans toast au simple rechargement)
+  checkDuplicatesSilent();
+}
+
+function checkDuplicatesSilent(){
+  const seen={};
+  rows.forEach((r,i)=>{
+    const v=(r.ref_bon||'').trim();
+    if(!v)return;
+    if(!seen[v])seen[v]=[];
+    seen[v].push(i);
+  });
+  const dupIdxs=new Set();
+  const dupVals=[];
+  Object.entries(seen).forEach(([v,idxs])=>{
+    if(idxs.length>1){idxs.forEach(i=>dupIdxs.add(i));dupVals.push(v);}
+  });
+  document.querySelectorAll('#tbody tr').forEach((tr,i)=>{
+    tr.classList.toggle('dup-row',dupIdxs.has(i));
+    const refTd=tr.querySelectorAll('td')[5];
+    if(refTd) refTd.classList.toggle('dup-cell',dupIdxs.has(i));
+  });
+  const banner=document.getElementById('dup-banner');
+  const msg=document.getElementById('dup-msg');
+  if(dupVals.length>0){
+    banner.style.display='flex';
+    msg.innerHTML=`<strong>${dupIdxs.size} lignes</strong> avec Réf. bon en doublon : ${dupVals.map(v=>`<strong>${v}</strong>`).join(', ')}`;
+  } else {
+    banner.style.display='none';
+  }
+}
+
+function mkRow(r,i){
+  // Pharmacie/facture portées par la ligne elle-même (multi-pharmacie)
+  const pharma=esc(r.pharmacie||document.getElementById('f-pharma').value||'—');
+  const facture=esc(r.numero_facture||document.getElementById('f-facture').value||'—');
+  const tr=document.createElement('tr');
+  if(r.is_total) tr.classList.add('total-row');
+  tr.innerHTML=`
+    <td class="row-num">${i+1}${r.is_total?'<span class="total-badge">TOTAL</span>':''}</td>
+    <td><button class="del-btn" onclick="confirmDelete(${i})" title="Supprimer"><i class="fa fa-trash"></i></button></td>
+    <td class="cell-global cell-pharma"><input value="${pharma}" onchange="set(${i},'pharmacie',this.value.toUpperCase())" style="font-weight:600;font-size:11px"></td>
+    <td class="cell-global cell-facture"><input value="${facture}" onchange="set(${i},'numero_facture',this.value)" style="font-size:11px"></td>
+    <td><input value="${esc(r.date||'')}" onchange="set(${i},'date',this.value)" placeholder="JJ/MM/AAAA" style="width:92px"></td>
+    <td><input value="${esc(r.ref_bon||'')}" onchange="set(${i},'ref_bon',this.value)" placeholder="—"></td>
+    <td><input value="${esc(r.salarie||'')}" onchange="set(${i},'salarie',this.value)" placeholder="NOM PRÉNOM"></td>
+    <td><input value="${esc(r.matricule||'')}" onchange="set(${i},'matricule',this.value)" placeholder="—"></td>
+    <td><input value="${esc((r.patient||'').toUpperCase())}" onchange="set(${i},'patient',this.value.toUpperCase())" style="font-weight:600;text-transform:uppercase"></td>
+    <td><input type="number" value="${r.total_bon||0}" onchange="num(${i},'total_bon',this.value)" style="width:86px;text-align:right"></td>
+    <td><input type="number" value="${r.taux||''}" onchange="num(${i},'taux',this.value)" style="width:50px;text-align:center" placeholder="—"></td>
+    <td><input type="number" value="${r.comptant||0}" onchange="num(${i},'comptant',this.value)" style="width:86px;text-align:right"></td>
+    <td><input type="number" value="${r.credit||0}" onchange="num(${i},'credit',this.value)" style="width:86px;text-align:right"></td>
+  `;
+  return tr;
+}
+
+function updateGlobalCells(){
+  const pharma=document.getElementById('f-pharma').value||'—';
+  const facture=document.getElementById('f-facture').value||'—';
+  document.querySelectorAll('.cell-pharma').forEach(td=>td.textContent=pharma);
+  document.querySelectorAll('.cell-facture').forEach(td=>td.textContent=facture);
+}
+
+// ═══ RÈGLES MÉTIER ════════════════════════════════════════════════════════════
+function applyBusinessRules(lignes){
+  let moved=0;
+  lignes.forEach(r=>{
+    // Taux toujours vide
+    r.taux=null;
+    // Nettoyage symboles / - . dans ref_bon et matricule
+    r.ref_bon=sanitizeCode(r.ref_bon);
+    r.matricule=sanitizeCode(r.matricule);
+    // Priorité Patient/Bénéficiaire
+    const patient=(r.patient||'').trim();
+    const salarie=(r.salarie||'').trim();
+    if(patient){
+      // Patient existe → vider salarié
+      r.salarie='';
+    } else if(salarie){
+      // Pas de patient → déplacer salarié vers patient
+      r.patient=salarie.toUpperCase();
+      r.salarie='';
+      moved++;
+    }
+  });
+  return {moved};
+}
+
+function checkDuplicates(){
+  // Compter les ref_bon
+  const seen={};
+  rows.forEach((r,i)=>{
+    const v=(r.ref_bon||'').trim();
+    if(!v)return;
+    if(!seen[v])seen[v]=[];
+    seen[v].push(i);
+  });
+  // Indices dupliqués
+  const dupIdxs=new Set();
+  const dupVals=[];
+  Object.entries(seen).forEach(([v,idxs])=>{
+    if(idxs.length>1){idxs.forEach(i=>dupIdxs.add(i));dupVals.push(v);}
+  });
+  // Appliquer styles
+  document.querySelectorAll('#tbody tr').forEach((tr,i)=>{
+    tr.classList.toggle('dup-row',dupIdxs.has(i));
+    const refTd=tr.querySelectorAll('td')[5];
+    if(refTd) refTd.classList.toggle('dup-cell',dupIdxs.has(i));
+  });
+  // Bannière
+  const banner=document.getElementById('dup-banner');
+  const msg=document.getElementById('dup-msg');
+  if(dupVals.length>0){
+    banner.style.display='flex';
+    msg.innerHTML=`<strong>${dupIdxs.size} lignes</strong> avec Réf. bon en doublon : ${dupVals.map(v=>`<strong>${v}</strong>`).join(', ')}`;
+    toast(`⚠ ${dupIdxs.size} doublons détectés dans Réf. bon`,'error',5000);
+  } else {
+    banner.style.display='none';
+  }
+  return dupIdxs.size;
+}
+
+function isTotalKeyword(v){
+  const kw=/^\s*(total|totaux|sous.?total|cumul|montant total|somme|sous total|report)\s*$/i;
+  return kw.test((v||'').trim());
+}
+
+// Marque les lignes de total avec is_total:true (elles restent visibles mais exclues de l'export)
+function detectAndRemoveTotalRow(lignes){
+  if(lignes.length<=1)return{lignes,removed:false,count:0};
+  let count=0;
+  for(let i=0;i<lignes.length;i++){
+    const r=lignes[i];
+    const rTot=parseFloat(r.total_bon)||0;
+    const rCpt=parseFloat(r.comptant)||0;
+    const rCrd=parseFloat(r.credit)||0;
+
+    // 1. Mot-clé TOTAL dans ref_bon, salarié ou patient
+    if(isTotalKeyword(r.ref_bon)||isTotalKeyword(r.salarie)||isTotalKeyword(r.patient)||
+       /total/i.test(r.ref_bon||'')){
+      r.is_total=true; count++; continue;
+    }
+    // 2. Ligne sans montants → pas une ligne total
+    if(rTot===0&&rCpt===0&&rCrd===0) continue;
+    // 3. Ligne sans ref_bon ni matricule → candidat total
+    const hasRef=(r.ref_bon||'').trim()!=='';
+    const hasMat=(r.matricule||'').trim()!=='';
+    if(hasRef||hasMat) continue;
+    // 4. Montants = somme des autres lignes (tolérance 2% ou 50F)
+    const rest=lignes.filter((_,j)=>j!==i&&!lignes[j].is_total);
+    const oTot=rest.reduce((a,x)=>a+(parseFloat(x.total_bon)||0),0);
+    const oCpt=rest.reduce((a,x)=>a+(parseFloat(x.comptant)||0),0);
+    const oCrd=rest.reduce((a,x)=>a+(parseFloat(x.credit)||0),0);
+    const tol=Math.max(50,oTot*0.02);
+    if(Math.abs(rTot-oTot)<=tol&&Math.abs(rCpt-oCpt)<=tol&&Math.abs(rCrd-oCrd)<=tol){
+      r.is_total=true; count++;
+    }
+  }
+  return{lignes,removed:count>0,count};
+}
+
+function removeDuplicates(){
+  // Garder seulement la 1ère occurrence de chaque ref_bon
+  const seen=new Set();
+  const before=rows.length;
+  rows=rows.filter(r=>{
+    const v=(r.ref_bon||'').trim();
+    if(!v)return true; // lignes sans ref_bon toujours gardées
+    if(seen.has(v))return false;
+    seen.add(v);return true;
+  });
+  const removed=before-rows.length;
+  renderTable();autoSave();
+  toast(removed+' doublon(s) supprimé(s)','success');
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}
+function sanitizeCode(v){return(v||'').replace(/[\/\-\.]/g,'').trim()}
+
+// Indices des inputs dans chaque ligne du tableau :
+// [0]=Date [1]=Réf.bon [2]=Salarié [3]=Matricule [4]=Patient [5]=Total bon [6]=Taux [7]=Comptant [8]=Crédit
+function set(i,k,v){
+  if(k==='ref_bon'||k==='matricule'){
+    v=sanitizeCode(v);
+    // Fix #1 : indices corrects
+    const inputIdx={ref_bon:1,matricule:3}[k];
+    const tr=document.querySelectorAll('#tbody tr')[i];
+    if(tr){const inp=tr.querySelectorAll('td input')[inputIdx];if(inp&&inp.value!==v)inp.value=v;}
+  }
+  rows[i][k]=v;
+  if(k==='patient'&&v.trim()){
+    rows[i].salarie='';
+    const tr=document.querySelectorAll('#tbody tr')[i];
+    // Fix #1 : index 2 = salarié (pas 4)
+    if(tr){const inp=tr.querySelectorAll('td input')[2];if(inp)inp.value='';}
+  }
+  if(k==='ref_bon') checkDuplicatesSilent();
+  autoSave();
+}
+
+// Fix #3 : taux reste null quand vidé
+function num(i,k,v){
+  rows[i][k]=(k==='taux'&&(v===''||v===null||v===undefined))?null:(parseFloat(v)||0);
+  updateTotals();autoSave();
+}
+
+function confirmDelete(i){
+  pendingDeleteIdx=i;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+  pendingDeleteIdx=null;
+}
+document.getElementById('modal-confirm-btn').onclick=()=>{
+  if(pendingDeleteIdx!==null){rows.splice(pendingDeleteIdx,1);renderTable();autoSave();}
+  closeModal();
+  toast('Ligne supprimée','info');
+};
+document.getElementById('modal-overlay').onclick=e=>{if(e.target===e.currentTarget)closeModal();};
+
+// Fix #4 : taux null (pas 0) pour respecter la règle métier
+function addRow(){
+  rows.push({date:'',ref_bon:'',salarie:'',matricule:'',patient:'',total_bon:0,taux:null,comptant:0,credit:0});
+  renderTable();
+  const inputs=document.querySelectorAll('#tbody tr:last-child input');
+  if(inputs[0]) inputs[0].focus();
+}
+
+function clearAll(){
+  if(!rows.length)return;
+  if(confirm('Effacer toutes les lignes ?')){rows=[];renderTable();autoSave();toast('Tableau vidé','info');}
+}
+
+function updateTotals(){
+  const fmt=v=>Math.round(v).toLocaleString('fr-FR')+' F';
+  const tot=rows.reduce((a,r)=>a+(parseFloat(r.total_bon)||0),0);
+  const cpt=rows.reduce((a,r)=>a+(parseFloat(r.comptant)||0),0);
+  const crd=rows.reduce((a,r)=>a+(parseFloat(r.credit)||0),0);
+  document.getElementById('t-tot').textContent=fmt(tot);
+  document.getElementById('t-cpt').textContent=fmt(cpt);
+  document.getElementById('t-crd').textContent=fmt(crd);
+}
+
+function updateBadge(){
+  const b=document.getElementById('badge-rows');
+  if(rows.length>0){b.style.display='inline-block';b.textContent=rows.length;}
+  else b.style.display='none';
+}
+
+function refreshExportStats(){
+  const fmt=v=>Math.round(v).toLocaleString('fr-FR')+' F';
+  document.getElementById('s-n').textContent=rows.length;
+  document.getElementById('s-tot').textContent=fmt(rows.reduce((a,r)=>a+(parseFloat(r.total_bon)||0),0));
+  document.getElementById('s-crd').textContent=fmt(rows.reduce((a,r)=>a+(parseFloat(r.credit)||0),0));
+  // Afficher le résumé par pharmacie
+  const grpEl=document.getElementById('s-groupes');
+  if(grpEl&&rows.length){
+    const groupes=groupByPharma();
+    grpEl.innerHTML='<strong style="display:block;margin-bottom:6px;color:#0D5C2E">Répartition par pharmacie :</strong>'+
+      groupes.map(g=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #D0E8D8;font-size:12px">
+        <span>🏥 <strong>${g.nom}</strong></span>
+        <span style="color:#5A8A6A">${g.lignes.length} ligne${g.lignes.length>1?'s':''} · `+
+        fmt(g.lignes.reduce((a,r)=>a+(parseFloat(r.total_bon)||0),0))+'</span></div>'
+      ).join('');
+    grpEl.style.display='block';
+  } else if(grpEl){ grpEl.style.display='none'; }
+}
+
+// ═══ AUTO-SAVE ════════════════════════════════════════════════════════════════
+let saveTimer=null;
+function autoSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    try{
+      localStorage.setItem('amat_rows',JSON.stringify(rows));
+      localStorage.setItem('amat_pharma',document.getElementById('f-pharma').value);
+      localStorage.setItem('amat_facture',document.getElementById('f-facture').value);
+      localStorage.setItem('amat_mois',document.getElementById('f-mois').value);
+      localStorage.setItem('amat_annee',document.getElementById('f-annee').value);
+    }catch(e){}
+  },600);
+}
+
+// ═══ EXPORT ══════════════════════════════════════════════════════════════════
+
+// Regroupe les lignes par pharmacie
+function groupByPharma(){
+  const mois=document.getElementById('f-mois').value||'';
+  const annee=document.getElementById('f-annee').value||'2025';
+  const groups={};
+  rows.forEach(r=>{
+    const key=(r.pharmacie||document.getElementById('f-pharma').value||'PHARMACIE').toUpperCase().trim()||'PHARMACIE';
+    if(!groups[key]) groups[key]={nom:key,facture:r.numero_facture||document.getElementById('f-facture').value||'',mois,annee,lignes:[]};
+    groups[key].lignes.push(r);
+  });
+  return Object.values(groups);
+}
+
+function exportOneExcel(groupe){
+  const{nom,facture,mois,annee,lignes}=groupe;
+  const wb=XLSX.utils.book_new();
+  const wsData=[['PHARMACIE','NUMERO DE FACTURE','Date','Réf. bon','Salarié','Matricule','Patient','Total bon','Taux','Comptant','Crédit']];
+  lignes.filter(r=>!r.is_total).forEach(r=>wsData.push([
+    nom, r.numero_facture||facture,
+    r.date||'', r.ref_bon||'', r.salarie||'', r.matricule||'',
+    (r.patient||'').toUpperCase(),
+    parseFloat(r.total_bon)||0, null,
+    parseFloat(r.comptant)||0, parseFloat(r.credit)||0
+  ]));
+  const last=lignes.filter(r=>!r.is_total).length+1;
+  wsData.push(['','','','','','','TOTAL',
+    {t:'n',f:'SUM(H2:H'+last+')'},'',
+    {t:'n',f:'SUM(J2:J'+last+')'},
+    {t:'n',f:'SUM(K2:K'+last+')'}
+  ]);
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=[{wch:28},{wch:22},{wch:12},{wch:12},{wch:22},{wch:13},{wch:24},{wch:12},{wch:8},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws,nom.substring(0,31));
+  XLSX.writeFile(wb,'AMAT_CI_'+nom.replace(/\s+/g,'_')+'_'+mois+'_'+annee+'.xlsx');
+}
+
+function exportOneTxt(groupe){
+  const{nom,facture,mois,annee,lignes}=groupe;
+  const lines=['PHARMACIE\tNUMERO DE FACTURE\tDate\tRéf. bon\tSalarié\tMatricule\tPatient\tTotal bon\tTaux\tComptant\tCrédit'];
+  const lignesExport=lignes.filter(r=>!r.is_total);
+  lignesExport.forEach(r=>lines.push([
+    nom, r.numero_facture||facture,
+    r.date||'',r.ref_bon||'',r.salarie||'',r.matricule||'',
+    (r.patient||'').toUpperCase(),r.total_bon||0,'',r.comptant||0,r.credit||0
+  ].join('\t')));
+  const tot=lignesExport.reduce((a,r)=>a+(parseFloat(r.total_bon)||0),0);
+  const cpt=lignesExport.reduce((a,r)=>a+(parseFloat(r.comptant)||0),0);
+  const crd=lignesExport.reduce((a,r)=>a+(parseFloat(r.credit)||0),0);
+  lines.push(['','','','','','','TOTAL',tot,'',cpt,crd].join('\t'));
+  const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='AMAT_CI_'+nom.replace(/\s+/g,'_')+'_'+mois+'_'+annee+'.txt';
+  a.click();
+}
+
+// Télécharge un Excel + TXT PAR PHARMACIE puis vide
+function exportAll(){
+  if(!rows.length){toast('Aucune donnée à exporter.','error');return;}
+  const groupes=groupByPharma();
+  let delay=0;
+  groupes.forEach((g,i)=>{
+    setTimeout(()=>{
+      exportOneExcel(g);
+      setTimeout(()=>exportOneTxt(g),500);
+      toast(g.nom+' — '+g.lignes.length+' ligne(s) téléchargées','success',3000);
+    },delay);
+    delay+=1400;
+  });
+  setTimeout(()=>{
+    rows=[];
+    localStorage.removeItem('amat_rows');
+    renderTable();
+    refreshExportStats();
+    toast(groupes.length+' pharmacie(s) exportée(s) — tableau vidé.','success',4000);
+    setTimeout(()=>go('upload'),2000);
+  },delay+600);
+}
+
+// Export individuel (boutons séparés) — pour compatibilité
+function exportExcel(){
+  if(!rows.length){toast('Aucune donnée à exporter.','error');return;}
+  groupByPharma().forEach((g,i)=>setTimeout(()=>exportOneExcel(g),i*800));
+  toast('Fichiers Excel téléchargés par pharmacie !','success');
+}
+function exportTxt(){
+  if(!rows.length){toast('Aucune donnée à exporter.','error');return;}
+  groupByPharma().forEach((g,i)=>setTimeout(()=>exportOneTxt(g),i*800));
+  toast('Fichiers TXT téléchargés par pharmacie !','success');
+}
+
+// ═══ CONFIG ═══════════════════════════════════════════════════════════════════
+function saveProxy(){
+  const url=document.getElementById('proxy-url').value.trim().replace(/\/$/,'');
+  if(!url){toast('Entrez une adresse valide.','error');return;}
+  localStorage.setItem('amat_proxy',url);
+  localStorage.setItem('amat_taux',document.getElementById('pref-taux').value);
+  const b=document.getElementById('badge-ok');
+  b.style.display='inline-flex';
+  setTimeout(()=>b.style.display='none',3000);
+  toast('Configuration enregistrée','success');
+}
+
+async function testProxy(){
+  const url=(document.getElementById('proxy-url').value.trim()||window.location.origin).replace(/\/$/,'');
+  const el=document.getElementById('proxy-status');
+  el.style.display='flex';
+  el.className='proxy-status';
+  el.innerHTML='<div class="spinner" style="border-top-color:#1A4A8A;border-color:rgba(0,0,0,.1)"></div> Test en cours…';
+  try{
+    const r=await fetch(url+'/health',{signal:AbortSignal.timeout(4000)});
+    const d=await r.json();
+    el.className='proxy-status ok';
+    el.innerHTML='<i class="fa fa-check-circle"></i> Serveur accessible — Clé API : '+(d.apiKeyConfigured?'✅ configurée':'❌ manquante');
+    if(d.apiKeyConfigured){document.getElementById('server-badge').style.display='flex';}
+  }catch(e){
+    el.className='proxy-status ko';
+    el.innerHTML='<i class="fa fa-times-circle"></i> Serveur inaccessible — vérifiez que LANCER.bat est ouvert';
+  }
+}
+
+// ═══ BIENVENUE ════════════════════════════════════════════════════════════════
+function fermerBienvenue(){
+  document.getElementById('welcome-overlay').classList.add('hidden');
+}
+
+// ═══ INIT ═════════════════════════════════════════════════════════════════════
+window.addEventListener('load',()=>{
+  // Détecter si la page est ouverte directement (file://) au lieu du serveur
+  if(window.location.protocol === 'file:') {
+    document.body.innerHTML = `
+      <div style="font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f0f7f4;">
+        <div style="background:#fff;border-radius:16px;padding:40px;max-width:480px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.12)">
+          <div style="font-size:48px;margin-bottom:16px">⚠️</div>
+          <h2 style="color:#1a6b3c;margin-bottom:12px">Mauvaise ouverture</h2>
+          <p style="color:#555;line-height:1.7;margin-bottom:24px">
+            Vous avez ouvert le fichier directement.<br>
+            Il faut d'abord lancer <strong>LANCER.bat</strong>,<br>
+            puis la plateforme s'ouvre automatiquement.
+          </p>
+          <div style="background:#e8f5ee;border-radius:10px;padding:14px;font-family:monospace;color:#1a6b3c;font-weight:700">
+            Double-cliquer sur LANCER.bat
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const p=localStorage.getItem('amat_proxy')||window.location.origin;
+  document.getElementById('proxy-url').value=p;
+  const t=localStorage.getItem('amat_taux');
+  if(t) document.getElementById('pref-taux').value=t;
+
+  // Démarrage propre : tout effacer à chaque lancement
+  try{
+    localStorage.removeItem('amat_rows');
+    localStorage.removeItem('amat_pharma');
+    localStorage.removeItem('amat_facture');
+    localStorage.removeItem('amat_mois');
+    localStorage.removeItem('amat_annee');
+  }catch(e){}
+
+  // Tableau vide — aucune ligne au démarrage
+  rows=[];
+  updateGlobalCells();
+  renderTable();
+
+  setTimeout(async()=>{
+    try{
+      const r=await fetch(window.location.origin+'/health',{signal:AbortSignal.timeout(2000)});
+      const d=await r.json();
+      if(d.status==='ok'&&d.apiKeyConfigured){
+        document.getElementById('server-badge').style.display='flex';
+        if(!localStorage.getItem('amat_proxy')) localStorage.setItem('amat_proxy',window.location.origin);
+      }
+    }catch(e){}
+  },800);
+
+
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "amat-ci-plateforme",
+  "version": "1.0.0",
+  "description": "AMAT-CI — Plateforme de numérisation des factures pharmaceutiques",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
