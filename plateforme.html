@@ -1004,6 +1004,11 @@ let pharmaChart = null;
 const CHART_COLORS = ['#1E7A3A','#E8690A','#1A4A8A','#7A1A6A','#0A5A7A','#7A6A0A','#4A0A8A','#8A4A0A','#0A7A5A','#6A0A2A'];
 
 // ═══ NAVIGATION ══════════════════════════════════════════════════════════════
+function fermerBienvenue() {
+  const overlay = document.getElementById('welcome-overlay');
+  if(overlay) overlay.classList.add('hidden');
+}
+
 function go(t) {
   clearTimeout(navTimer);
   const steps = ['upload','saisie','export','config'];
