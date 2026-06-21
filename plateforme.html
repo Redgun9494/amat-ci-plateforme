@@ -1316,6 +1316,37 @@ function hideProgress(){
   if(wrap) wrap.style.display='none';
 }
 
+// ═══ RÈGLES MÉTIER (NE PAS MODIFIER) ══════════════════════
+function sanitizeCode(v){return(v||'').replace(/[\/\-\.]/g,'').trim()}
+
+function applyBusinessRules(lignes){
+  let moved=0;
+  lignes.forEach(r=>{
+    r.taux=null;
+    r.ref_bon=sanitizeCode(r.ref_bon);
+    r.matricule=sanitizeCode(r.matricule);
+    const patient=(r.patient||'').trim();
+    const salarie=(r.salarie||'').trim();
+    if(patient){
+      r.salarie='';
+    } else if(salarie){
+      r.patient=salarie.toUpperCase();
+      r.salarie='';
+      moved++;
+    }
+  });
+  return {moved};
+}
+
+function detectAndRemoveTotalRow(lignes){
+  const kw=['total','sous-total','cumul','montant total','sous total'];
+  for(let i=lignes.length-1;i>=0;i--){
+    const r=lignes[i];
+    const vals=Object.values(r).map(v=>(v||'').toString().toLowerCase().trim());
+    if(vals.some(v=>kw.some(k=>v===k||v.startsWith(k)))){lignes.splice(i,1);}
+  }
+}
+
 // ═══ EXTRACTION MULTI-FICHIERS ══════════════════════════════════════════════
 async function extractAll() {
   if(!fileQueue.length){toast('Aucun fichier chargé.','error');return;}
