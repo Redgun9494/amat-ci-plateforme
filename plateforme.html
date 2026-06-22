@@ -1254,9 +1254,12 @@ function renderQueue(){
     div.innerHTML=`<span class="fq-icon">${icons[entry.status]}</span>
       <span class="fq-name" title="${entry.name}">${entry.name}</span>
       <span class="fq-status ${entry.status}" id="fq-st-${i}">${labels[entry.status]}</span>
-      <div style="width:100%">
-        <div class="fq-progress" id="fq-prog-${i}" style="${entry.status==='processing'?'':'display:none'}">
+      <div style="width:100%;display:flex;align-items:center;gap:8px">
+        <div class="fq-progress" id="fq-prog-${i}" style="flex:1;${entry.status==='processing'?'':'display:none'}">
           <div class="fq-bar" id="fq-bar-${i}" style="width:${entry.status==='done'?'100':0}%"></div>
+        </div>
+        <div id="fq-dl-${i}" style="${entry.status==='done'&&entry.rows?.length?'':'display:none'}">
+          <button onclick="exportSingle(${i})" title="Télécharger ce fichier" style="background:#1E7A3A;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;white-space:nowrap"><i class="fa fa-download"></i> Excel</button>
         </div>
       </div>`;
     list.appendChild(div);
@@ -1275,8 +1278,10 @@ function setQueueItemStatus(i, status, extra){
   const st=document.getElementById('fq-st-'+i);
   const prog=document.getElementById('fq-prog-'+i);
   const bar=document.getElementById('fq-bar-'+i);
+  const dlBtn=document.getElementById('fq-dl-'+i);
   if(!item)return;
   item.className='fq-item '+status;
+  if(dlBtn) dlBtn.style.display=(status==='done'&&fileQueue[i]?.rows?.length)?'':'none';
   item.querySelector('.fq-icon').textContent=icons[status];
   st.className='fq-status '+status;
   st.textContent=labels[status];
@@ -1373,6 +1378,7 @@ RÈGLES IMPORTANTES :
 3. Champ "taux" : toujours laisser à null (vide), même si une valeur est visible.
 4. Les "ref_bon" doivent être uniques par ligne — ne pas dupliquer.
 5. NE PAS inclure les lignes de total/sous-total/cumul — seulement les lignes de détail.
+6. Le champ "pharmacie" est le NOM DU FOURNISSEUR (la pharmacie, clinique, hôpital vendeur). Ne jamais mettre "AMAT-CI", "AMAT CI", "DGTCP", "Trésor", ni le nom de l'organisation bénéficiaire.
 
 Retourne UNIQUEMENT un JSON valide (rien avant, rien après) :
 {
@@ -1433,7 +1439,9 @@ Valeurs illisibles = chaîne vide ou 0. Noms TOUJOURS en MAJUSCULES.`;
       if(parsed.annee) document.getElementById('f-annee').value=parsed.annee;
 
       const nouvelles=parsed.lignes||[];
-      const pharmaNom=(parsed.pharmacie||'').toUpperCase().trim();
+      let pharmaNom=(parsed.pharmacie||'').toUpperCase().trim();
+      // Ne jamais garder AMAT-CI comme nom de pharmacie
+      if(/^AMAT[-\s]?CI$|^DGTCP$|^TR.?SOR/i.test(pharmaNom)) pharmaNom='';
       const factureNum=parsed.numero_facture||'';
       nouvelles.forEach(r=>{
         r.pharmacie=pharmaNom||r.pharmacie||'';
@@ -1682,7 +1690,7 @@ function exportExcel(){
   ws['!cols']=[{wch:30},{wch:16},{wch:12},{wch:12},{wch:22},{wch:12},{wch:22},{wch:12},{wch:8},{wch:12},{wch:12}];
   XLSX.utils.book_append_sheet(wb,ws,'Factures');
   const nom=(pharma||'AMAT_CI').replace(/[^A-Z0-9_]/gi,'_');
-  const filename='AMAT_CI_'+nom+'_'+mois+'_'+annee+'.xlsx';
+  const filename=nom+'_'+mois+'_'+annee+'.xlsx';
   XLSX.writeFile(wb,filename);
   toast('Excel téléchargé : '+filename,'success');
 }
@@ -1698,7 +1706,7 @@ function exportTxt(){
   const a=document.createElement('a');
   a.href=url;
   const nom=(pharma||'AMAT_CI').replace(/[^A-Z0-9_]/gi,'_');
-  a.download='AMAT_CI_'+nom+'_'+mois+'_'+annee+'.txt';
+  a.download=nom+'_'+mois+'_'+annee+'.txt';
   a.click();
   URL.revokeObjectURL(url);
   toast('TXT téléchargé','success');
@@ -1751,6 +1759,36 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(sr){rows=JSON.parse(sr);renderTable();if(rows.length)go('saisie');}
   }catch(e){}
 });
+
+
+function exportSingle(i){
+  const entry=fileQueue[i];
+  if(!entry||!entry.rows||!entry.rows.length){toast('Aucune donnée pour ce fichier','error');return;}
+  if(typeof XLSX==='undefined'){toast('Bibliothèque Excel non chargée','error');return;}
+  const headers=['PHARMACIE','N° FACTURE','DATE','RÉF. BON','SALARIÉ','MATRICULE','PATIENT','TOTAL BON','TAUX','COMPTANT','CRÉDIT'];
+  const dataRows=entry.rows.map(r=>[
+    (r.pharmacie||entry.pharmacie||'').toUpperCase(),
+    r.numero_facture||entry.facture||'',
+    r.date||'',
+    r.ref_bon||'',
+    r.salarie||'',
+    r.matricule||'',
+    (r.patient||'').toUpperCase(),
+    parseFloat(r.total_bon)||0,
+    r.taux!=null&&r.taux!==''?parseFloat(r.taux):null,
+    parseFloat(r.comptant)||0,
+    parseFloat(r.credit)||0
+  ]);
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([headers,...dataRows]);
+  ws['!cols']=[{wch:30},{wch:16},{wch:12},{wch:12},{wch:22},{wch:12},{wch:22},{wch:12},{wch:8},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws,'Factures');
+  const baseName=entry.name.replace(/\.[^.]+$/,'').replace(/[^A-Z0-9_\-]/gi,'_');
+  const pharma=(entry.pharmacie||'').replace(/[^A-Z0-9_]/gi,'_')||baseName;
+  const filename=pharma+'.xlsx';
+  XLSX.writeFile(wb,filename);
+  toast('Téléchargé : '+filename,'success');
+}
 
 
 function updateGlobalCells(){
