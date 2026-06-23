@@ -1930,7 +1930,7 @@ function _exportPharmRows(pharmNom,pharmRows){
   const factGroups=[...byFacture.entries()];
   const hasMultiple=factGroups.length>1;
 
-  const headers=['PHARMACIE','N° FACTURE','DATE','RÉF. BON','SALARIEN','MATRICULE','PATIENT','TOTAL BON','TAUX','COMPTANT','CRÉDIT'];
+  const headers=['PHARMACIE','N° FACTURE','DATE','RÉF. BON','SALARIÉ','MATRICULE','PATIENT','TOTAL BON','TAUX','COMPTANT','CRÉDIT'];
   const wsData=[headers];
   const redRowIdxs=new Set();
   const sepRowIdxs=new Set();
@@ -2014,7 +2014,7 @@ function exportExcel(){
 
 function exportTxt(){
   if(!rows.length){toast('Aucune donnée à exporter','error');return;}
-  const headers=['PHARMACIE','N° FACTURE','DATE','RÉF. BON','SALARIEN','MATRICULE','PATIENT','TOTAL BON','TAUX','COMPTANT','CRÉDIT'];
+  const headers=['PHARMACIE','N° FACTURE','DATE','RÉF. BON','SALARIÉ','MATRICULE','PATIENT','TOTAL BON','TAUX','COMPTANT','CRÉDIT'];
   const sep='\t';
   const lines=[headers.join(sep)];
   rows.filter(r=>!r.is_total).forEach(r=>lines.push([
