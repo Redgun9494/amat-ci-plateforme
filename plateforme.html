@@ -830,6 +830,12 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
       <button class="btn btn-outline btn-sm" onclick="setInvoiceFilter(null)" style="margin-left:6px;font-size:11px">Toutes</button>
     </div>
 
+    <!-- Aperçu document de la facture sélectionnée -->
+    <div id="saisie-preview-panel" style="display:none;margin-bottom:12px;background:#fff;border:1px solid #B0D8BC;border-radius:10px;padding:10px;text-align:center;max-height:320px;overflow:hidden">
+      <img id="saisie-preview-img" style="max-height:300px;max-width:100%;border-radius:6px;object-fit:contain" alt="aperçu facture">
+      <div id="saisie-preview-pdf" style="display:none;height:200px;align-items:center;justify-content:center;font-size:48px;color:#B0D8BC">📄</div>
+    </div>
+
     <div class="card">
       <div class="card-title"><i class="fa fa-building"></i> Informations pharmacie</div>
       <div class="pharma-grid">
@@ -1092,44 +1098,91 @@ function go(t) {
 }
 
 // ═══ NAVIGATEUR DE FACTURES ══════════════════════════════════════════════════
+// saisieFilter = null (tout) | {pharmacie:string, facture:string}
+// Groupes = combinaisons unique pharmacie+facture dans rows[]
+function getSaisieGroups(){
+  const seen=new Map();
+  rows.filter(r=>!r.is_total).forEach(r=>{
+    const ph=(r.pharmacie||'INCONNUE').toUpperCase().trim();
+    const fa=(r.numero_facture||'').trim();
+    const key=ph+'||'+fa;
+    if(!seen.has(key))seen.set(key,{pharmacie:ph,facture:fa,count:0});
+    seen.get(key).count++;
+  });
+  return [...seen.values()];
+}
+
 function updateSaisieNav(){
-  const done=fileQueue.filter(e=>e.status==='done'&&e.rows&&e.rows.length);
+  const groups=getSaisieGroups();
   const nav=document.getElementById('invoice-nav');
   if(!nav) return;
-  if(done.length<1){nav.style.display='none';saisieFilter=null;renderTable();return;}
+  if(groups.length<2){
+    nav.style.display='none';
+    saisieFilter=null;
+    renderTable();
+    updateSaisiePreview();
+    return;
+  }
   nav.style.display='flex';
   const label=document.getElementById('invoice-nav-label');
   if(saisieFilter===null){
-    label.textContent='Toutes les factures ('+done.length+')';
+    label.textContent='Toutes les factures ('+groups.length+')';
   } else {
-    const entry=fileQueue[saisieFilter];
-    if(!entry){saisieFilter=null;label.textContent='Toutes les factures ('+done.length+')';}
-    else{
-      // Find position among done entries
-      const doneIdxs=fileQueue.map((e,i)=>e.status==='done'&&e.rows&&e.rows.length?i:-1).filter(i=>i>=0);
-      const pos=doneIdxs.indexOf(saisieFilter);
-      const nom=entry.pharmacie||entry.name;
-      label.textContent=(pos+1)+'/'+done.length+' — '+nom+(entry.typeEtab?' ['+entry.typeEtab.replace('_',' ')+']':'');
-    }
+    const pos=groups.findIndex(g=>g.pharmacie===saisieFilter.pharmacie&&g.facture===saisieFilter.facture);
+    const g=groups[pos]||groups[0];
+    const typeTag=_getTypeEtabFromPharma(g.pharmacie);
+    label.textContent=(pos+1)+'/'+groups.length+' — '+g.pharmacie+(g.facture?' · '+g.facture:'')+(typeTag?' ['+typeTag.replace('_',' ')+']':'');
   }
   renderTable();
+  updateSaisiePreview();
 }
 
-function setInvoiceFilter(idx){
-  saisieFilter=idx;
+function _getTypeEtabFromPharma(pharmaNom){
+  // Try to find typeEtab from the corresponding fileQueue entry
+  const entry=fileQueue.find(e=>(e.pharmacie||'').toUpperCase().trim()===pharmaNom&&e.typeEtab);
+  return entry?entry.typeEtab:'';
+}
+
+function _getPreviewForPharma(pharmacie,facture){
+  // Find fileQueue entry matching this pharmacie+facture
+  const entry=fileQueue.find(e=>
+    (e.pharmacie||'').toUpperCase().trim()===pharmacie&&
+    (!facture||(e.facture||'').trim()===facture)
+  );
+  return entry||null;
+}
+
+function updateSaisiePreview(){
+  const panel=document.getElementById('saisie-preview-panel');
+  if(!panel) return;
+  if(saisieFilter===null){panel.style.display='none';return;}
+  const entry=_getPreviewForPharma(saisieFilter.pharmacie,saisieFilter.facture);
+  if(!entry||(!entry.preview&&entry.type!=='application/pdf')){panel.style.display='none';return;}
+  const img=document.getElementById('saisie-preview-img');
+  const pdf=document.getElementById('saisie-preview-pdf');
+  if(entry.preview&&entry.type&&entry.type.startsWith('image/')){
+    img.src=entry.preview;img.style.display='block';if(pdf)pdf.style.display='none';
+  } else if(entry.type==='application/pdf'){
+    if(img)img.style.display='none';if(pdf)pdf.style.display='flex';
+  } else {panel.style.display='none';return;}
+  panel.style.display='block';
+}
+
+function setInvoiceFilter(val){
+  saisieFilter=val;
   updateSaisieNav();
 }
 
 function navInvoice(dir){
-  const doneIdxs=fileQueue.map((e,i)=>e.status==='done'&&e.rows&&e.rows.length?i:-1).filter(i=>i>=0);
-  if(!doneIdxs.length) return;
+  const groups=getSaisieGroups();
+  if(!groups.length) return;
   if(saisieFilter===null){
-    saisieFilter=dir>0?doneIdxs[0]:doneIdxs[doneIdxs.length-1];
+    saisieFilter=dir>0?{pharmacie:groups[0].pharmacie,facture:groups[0].facture}:{pharmacie:groups[groups.length-1].pharmacie,facture:groups[groups.length-1].facture};
   } else {
-    const pos=doneIdxs.indexOf(saisieFilter);
+    const pos=groups.findIndex(g=>g.pharmacie===saisieFilter.pharmacie&&g.facture===saisieFilter.facture);
     const next=pos+dir;
-    if(next<0||next>=doneIdxs.length){saisieFilter=null;}
-    else{saisieFilter=doneIdxs[next];}
+    if(next<0||next>=groups.length){saisieFilter=null;}
+    else{saisieFilter={pharmacie:groups[next].pharmacie,facture:groups[next].facture};}
   }
   updateSaisieNav();
 }
@@ -1624,22 +1677,26 @@ function setStatus(type,msg){
 function renderTable(){
   const tb=document.getElementById('tbody');
   tb.innerHTML='';
-  // Filter by active invoice if saisieFilter is set
-  const entryRows=saisieFilter!==null&&fileQueue[saisieFilter]?(fileQueue[saisieFilter].rows||[]):null;
-  const visibleRows=entryRows?rows.filter(r=>entryRows.includes(r)):rows;
+  // Filter by active invoice group if saisieFilter is set {pharmacie, facture}
+  let visibleRows=rows;
+  if(saisieFilter!==null){
+    visibleRows=rows.filter(r=>{
+      const ph=(r.pharmacie||'INCONNUE').toUpperCase().trim();
+      const fa=(r.numero_facture||'').trim();
+      return ph===saisieFilter.pharmacie&&(!saisieFilter.facture||fa===saisieFilter.facture);
+    });
+  }
   visibleRows.forEach(r=>tb.appendChild(mkRow(r,rows.indexOf(r))));
   updateTotals(visibleRows);
   updateBadge();
   const empty=document.getElementById('empty-state');
   empty.style.display=visibleRows.length===0?'block':'none';
   const label=document.getElementById('row-count-label');
-  label.textContent=visibleRows.length>0?visibleRows.length+' ligne'+(visibleRows.length>1?'s':'')+''+( saisieFilter!==null?' (filtré)':''):'';
+  label.textContent=visibleRows.length>0?visibleRows.length+' ligne'+(visibleRows.length>1?'s':'')+(saisieFilter!==null?' (filtré)':''):'';
   checkDuplicatesSilent();
   updateSortUI();
-  // Re-apply search filter after render
   const q=document.getElementById('search-table')?.value;
   if(q) searchTable();
-  // Update dashboard
   updateDashboard();
 }
 
@@ -1890,25 +1947,111 @@ function exportTxt(){
 }
 
 function exportAll(){
-  // Export each institution separately (one file per pharmacie)
-  const done=fileQueue.filter(e=>e.rows&&e.rows.length);
-  if(!done.length){exportExcel();setTimeout(()=>exportTxt(),600);return;}
-  // Group by normalized pharmacie name
-  const byPharm={};
-  done.forEach((e,i)=>{
-    const k=(e.pharmacie||'').toUpperCase().trim()||('__'+i);
-    if(!byPharm[k])byPharm[k]=[];
-    byPharm[k].push(e);
+  // Export chaque institution séparément — basé sur rows[] directement
+  const lignes=rows.filter(r=>!r.is_total);
+  if(!lignes.length){toast('Aucune donnée à exporter','error');return;}
+
+  // Grouper par pharmacie
+  const byPharm=new Map();
+  lignes.forEach(r=>{
+    const k=(r.pharmacie||'INCONNUE').toUpperCase().trim();
+    if(!byPharm.has(k))byPharm.set(k,[]);
+    byPharm.get(k).push(r);
   });
-  const groups=Object.values(byPharm);
-  groups.forEach((grp,gi)=>{
-    setTimeout(()=>{
-      // Use exportSingle logic via the first entry's index
-      const idx=fileQueue.indexOf(grp[0]);
-      if(idx>=0) exportSingle(idx);
-    },gi*600);
+
+  const pharmGroups=[...byPharm.entries()]; // [[pharmNom, rows[]], ...]
+  pharmGroups.forEach(([pharmNom,pharmRows],gi)=>{
+    setTimeout(()=>_exportPharmRows(pharmNom,pharmRows),gi*700);
   });
-  toast('Export : '+groups.length+' fichier(s) en cours…','success');
+  toast('Export : '+pharmGroups.length+' fichier(s) en cours…','success');
+}
+
+function _exportPharmRows(pharmNom,pharmRows){
+  if(typeof XLSX==='undefined'){toast('XLSX non chargé','error');return;}
+
+  // Sous-grouper par numero_facture pour détecter les factures multiples
+  const byFacture=new Map();
+  pharmRows.forEach(r=>{
+    const k=(r.numero_facture||'__').trim();
+    if(!byFacture.has(k))byFacture.set(k,[]);
+    byFacture.get(k).push(r);
+  });
+  const factGroups=[...byFacture.entries()];
+  const hasMultiple=factGroups.length>1;
+
+  const headers=['PHARMACIE','N° FACTURE','DATE','RÉF. BON','SALARIÉ','MATRICULE','PATIENT','TOTAL BON','TAUX','COMPTANT','CRÉDIT'];
+  const wsData=[headers];
+  const redRowIdxs=new Set(); // lignes à colorier en rouge (facture 2+)
+  const sepRowIdxs=new Set(); // lignes séparateur
+
+  factGroups.forEach(([factNum,factRows],gIdx)=>{
+    if(hasMultiple){
+      const sepLabel='── FACTURE '+(gIdx+1)+(factNum!=='__'?' : '+factNum:'')+' ──';
+      const sepIdx=wsData.length;
+      sepRowIdxs.add(sepIdx);
+      if(gIdx>0)redRowIdxs.add(sepIdx);
+      wsData.push([sepLabel,...Array(10).fill('')]);
+    }
+    factRows.forEach(r=>{
+      const dataIdx=wsData.length;
+      if(hasMultiple&&gIdx>0)redRowIdxs.add(dataIdx);
+      wsData.push([
+        (r.pharmacie||pharmNom).toUpperCase(),
+        r.numero_facture||'',r.date||'',r.ref_bon||'',
+        r.salarie||'',r.matricule||'',
+        (r.patient||'').toUpperCase(),
+        parseFloat(r.total_bon)||0,
+        r.taux!=null&&r.taux!==''?parseFloat(r.taux):null,
+        parseFloat(r.comptant)||0,parseFloat(r.credit)||0
+      ]);
+    });
+  });
+
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=[{wch:30},{wch:16},{wch:12},{wch:12},{wch:22},{wch:12},{wch:22},{wch:12},{wch:8},{wch:12},{wch:12}];
+
+  // Appliquer les couleurs
+  if(hasMultiple){
+    wsData.forEach((_,rowIdx)=>{
+      if(rowIdx===0)return; // skip header
+      const isSep=sepRowIdxs.has(rowIdx);
+      const isRed=redRowIdxs.has(rowIdx);
+      const fillColor=isSep?(isRed?'CC3300':'1E7A3A'):(isRed?'FFDDDD':null);
+      if(!fillColor)return;
+      for(let c=0;c<11;c++){
+        const ref=XLSX.utils.encode_cell({r:rowIdx,c});
+        if(!ws[ref])ws[ref]={t:'s',v:''};
+        ws[ref].s={fill:{patternType:'solid',fgColor:{rgb:fillColor}},font:isSep?{bold:true,color:{rgb:'FFFFFF'}}:{}};
+      }
+    });
+  }
+
+  // Trouver le typeEtab depuis fileQueue ou déduire du nom
+  const matchEntry=fileQueue.find(e=>(e.pharmacie||'').toUpperCase().trim()===pharmNom);
+  const typeEtab=matchEntry?.typeEtab||_inferTypeFromName(pharmNom);
+  const filename=_buildExportFilenameFromParts(typeEtab,pharmNom);
+
+  XLSX.writeFile(wb,filename);
+  toast('✅ '+filename+(hasMultiple?' ('+factGroups.length+' factures groupées)':''),'success');
+}
+
+function _inferTypeFromName(nom){
+  const n=nom.toUpperCase();
+  if(n.includes('CHU'))return'CHU';
+  if(n.includes('HOPITAL')||n.includes('HÔPITAL'))return'HOPITAL_GENERAL';
+  if(n.includes('CLINIQUE'))return'CLINIQUE';
+  return'PHARMACIE';
+}
+
+function _buildExportFilenameFromParts(typeEtab,pharmaNom){
+  const norm=pharmaNom.normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^A-Z0-9\s]/gi,'').trim().replace(/\s+/g,'_').toUpperCase();
+  if(!norm)return(typeEtab||'PHARMACIE')+'_INCONNU.xlsx';
+  const t=typeEtab||'PHARMACIE';
+  // Éviter double préfixe
+  if(norm.startsWith(t+'_')||norm===t||norm.startsWith(t.replace('_','')))return norm+'.xlsx';
+  return t+'_'+norm+'.xlsx';
 }
 
 // ═══ CONFIG PROXY ══════════════════════════════════════════════════════════════
@@ -1950,7 +2093,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(proxyEl)proxyEl.value=saved||window.location.origin;
   try{
     const sr=localStorage.getItem('amat_rows');
-    if(sr){rows=JSON.parse(sr);renderTable();if(rows.length)go('saisie');}
+    if(sr){rows=JSON.parse(sr);renderTable();if(rows.length){go('saisie');updateSaisieNav();}}
   }catch(e){}
 });
 
@@ -1979,79 +2122,14 @@ function exportSingle(i){
   const entry=fileQueue[i];
   if(!entry||!entry.rows||!entry.rows.length){toast('Aucune donnée pour ce fichier','error');return;}
   if(typeof XLSX==='undefined'){toast('Bibliothèque Excel non chargée','error');return;}
-
-  // Find all queue entries with same institution (same pharmacie name)
-  const nomRef=(entry.pharmacie||'').toUpperCase().trim();
-  const grouped=fileQueue.filter((e,idx)=>
-    e.rows&&e.rows.length&&(e.pharmacie||'').toUpperCase().trim()===nomRef
-  );
-  const hasMultiple=grouped.length>1;
-
-  const headers=['PHARMACIE','N° FACTURE','DATE','RÉF. BON','SALARIÉ','MATRICULE','PATIENT','TOTAL BON','TAUX','COMPTANT','CRÉDIT'];
-  const wsData=[headers];
-  // Track which row indices belong to which invoice (for coloring)
-  const invoiceBreaks=[]; // {startRow, label}
-
-  grouped.forEach((e,gIdx)=>{
-    if(hasMultiple){
-      // Separator/header row for this invoice
-      const sepLabel='── FACTURE '+(gIdx+1)+' : '+(e.facture||e.name)+' ──';
-      const sepRow=[sepLabel,'','','','','','','','','',''];
-      invoiceBreaks.push({rowIdx:wsData.length, label:sepLabel, isSecond:gIdx>0});
-      wsData.push(sepRow);
-    }
-    e.rows.forEach(r=>{
-      wsData.push([
-        (r.pharmacie||e.pharmacie||'').toUpperCase(),
-        r.numero_facture||e.facture||'',
-        r.date||'',
-        r.ref_bon||'',
-        r.salarie||'',
-        r.matricule||'',
-        (r.patient||'').toUpperCase(),
-        parseFloat(r.total_bon)||0,
-        r.taux!=null&&r.taux!==''?parseFloat(r.taux):null,
-        parseFloat(r.comptant)||0,
-        parseFloat(r.credit)||0
-      ]);
-    });
-  });
-
-  const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols']=[{wch:30},{wch:16},{wch:12},{wch:12},{wch:22},{wch:12},{wch:22},{wch:12},{wch:8},{wch:12},{wch:12}];
-
-  // Apply red background to separator rows and rows from 2nd+ invoice
-  if(hasMultiple){
-    const redFill={patternType:'solid',fgColor:{rgb:'FFCCCC'}};
-    const sepFill={patternType:'solid',fgColor:{rgb:'FF9999'}};
-    const redFont={bold:true,color:{rgb:'990000'}};
-    let currentIsSecond=false;
-    for(let rowIdx=1;rowIdx<wsData.length;rowIdx++){
-      const breakInfo=invoiceBreaks.find(b=>b.rowIdx===rowIdx);
-      if(breakInfo){
-        currentIsSecond=breakInfo.isSecond;
-        // Style separator row
-        for(let c=0;c<11;c++){
-          const ref=XLSX.utils.encode_cell({r:rowIdx,c});
-          if(!ws[ref])ws[ref]={t:'s',v:''};
-          ws[ref].s={fill:currentIsSecond?{patternType:'solid',fgColor:{rgb:'CC0000'}}:{patternType:'solid',fgColor:{rgb:'1E7A3A'}},font:{bold:true,color:{rgb:'FFFFFF'}}};
-        }
-      } else if(currentIsSecond){
-        // Tint data rows from 2nd+ invoice in light red
-        for(let c=0;c<11;c++){
-          const ref=XLSX.utils.encode_cell({r:rowIdx,c});
-          if(ws[ref])ws[ref].s={fill:redFill};
-        }
-      }
-    }
+  // Récupérer toutes les lignes pour cette pharmacie depuis rows[]
+  const pharmNom=(entry.pharmacie||'').toUpperCase().trim();
+  if(pharmNom){
+    const pharmRows=rows.filter(r=>!r.is_total&&(r.pharmacie||'').toUpperCase().trim()===pharmNom);
+    if(pharmRows.length){_exportPharmRows(pharmNom,pharmRows);return;}
   }
-
-  const sheetName=(nomRef||'Factures').substring(0,31);
-  XLSX.utils.book_append_sheet(wb,ws,sheetName);
-  const filename=_buildExportFilename(entry);
-  XLSX.writeFile(wb,filename);
-  toast('Téléchargé : '+filename+(hasMultiple?' ('+grouped.length+' factures groupées)':''),'success');
+  // Fallback: lignes de ce fichier seulement
+  _exportPharmRows(pharmNom||entry.name,entry.rows);
 }
 
 
