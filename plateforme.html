@@ -211,6 +211,9 @@ body::before{
 .fq-item.processing{background:#EAF1FF;border-color:#B3CDED}
 .fq-item.done{background:#E8F5EE;border-color:var(--g4)}
 .fq-item.error{background:#FEECEC;border-color:#F5BABA}
+.fq-thumb{width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex-shrink:0;background:#f0f0f0;display:flex;align-items:center;justify-content:center}
+.fq-thumb img{width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex-shrink:0}
+.fq-thumb-pdf{width:52px;height:52px;border-radius:6px;border:1px solid var(--border);flex-shrink:0;background:#FFF3F0;display:flex;align-items:center;justify-content:center;font-size:26px}
 .fq-icon{font-size:18px;flex-shrink:0}
 .fq-name{flex:1;font-weight:500;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fq-status{font-size:11px;font-weight:600;flex-shrink:0}
@@ -1233,6 +1236,7 @@ function loadFiles(files) {
     const reader = new FileReader();
     reader.onload = ev => {
       entry.data = ev.target.result.split(',')[1];
+      entry.preview = ev.target.result; // full data URL for thumbnail
       loaded++;
       if(loaded===files.length) renderQueue();
     };
@@ -1251,15 +1255,27 @@ function renderQueue(){
     const div=document.createElement('div');
     div.className='fq-item '+entry.status;
     div.id='fq-item-'+i;
-    div.innerHTML=`<span class="fq-icon">${icons[entry.status]}</span>
-      <span class="fq-name" title="${entry.name}">${entry.name}</span>
-      <span class="fq-status ${entry.status}" id="fq-st-${i}">${labels[entry.status]}</span>
-      <div style="width:100%;display:flex;align-items:center;gap:8px">
-        <div class="fq-progress" id="fq-prog-${i}" style="flex:1;${entry.status==='processing'?'':'display:none'}">
-          <div class="fq-bar" id="fq-bar-${i}" style="width:${entry.status==='done'?'100':0}%"></div>
+    const isImg = entry.type && entry.type.startsWith('image/');
+    const isPdf = entry.type === 'application/pdf';
+    const thumbHtml = isImg
+      ? `<img class="fq-thumb" src="${entry.preview}" alt="aperçu">`
+      : isPdf
+        ? `<div class="fq-thumb-pdf">📄</div>`
+        : `<div class="fq-thumb-pdf">📎</div>`;
+    div.innerHTML=`${thumbHtml}
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="fq-icon">${icons[entry.status]}</span>
+          <span class="fq-name" title="${entry.name}">${entry.name}</span>
+          <span class="fq-status ${entry.status}" id="fq-st-${i}">${labels[entry.status]}</span>
         </div>
-        <div id="fq-dl-${i}" style="${entry.status==='done'&&entry.rows?.length?'':'display:none'}">
-          <button onclick="exportSingle(${i})" title="Télécharger ce fichier" style="background:#1E7A3A;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;white-space:nowrap"><i class="fa fa-download"></i> Excel</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="fq-progress" id="fq-prog-${i}" style="flex:1;${entry.status==='processing'?'':'display:none'}">
+            <div class="fq-bar" id="fq-bar-${i}" style="width:${entry.status==='done'?'100':0}%"></div>
+          </div>
+          <div id="fq-dl-${i}" style="${entry.status==='done'&&entry.rows?.length?'':'display:none'}">
+            <button onclick="exportSingle(${i})" title="Télécharger ce fichier" style="background:#1E7A3A;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;white-space:nowrap"><i class="fa fa-download"></i> Excel</button>
+          </div>
         </div>
       </div>`;
     list.appendChild(div);
