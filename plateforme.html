@@ -821,6 +821,15 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
 
   <!-- ─── ONGLET SAISIE ────────────────────────────────────────────────────── -->
   <div id="screen-saisie" class="screen">
+
+    <!-- Navigateur de factures -->
+    <div id="invoice-nav" style="display:none;background:#F0FAF4;border:1px solid #B0D8BC;border-radius:10px;padding:10px 16px;margin-bottom:12px;align-items:center;gap:10px">
+      <button class="btn btn-outline btn-sm" onclick="navInvoice(-1)" title="Facture précédente"><i class="fa fa-chevron-left"></i></button>
+      <div style="flex:1;text-align:center;font-weight:600;font-size:13px;color:#1E7A3A" id="invoice-nav-label">Toutes les factures</div>
+      <button class="btn btn-outline btn-sm" onclick="navInvoice(1)" title="Facture suivante"><i class="fa fa-chevron-right"></i></button>
+      <button class="btn btn-outline btn-sm" onclick="setInvoiceFilter(null)" style="margin-left:6px;font-size:11px">Toutes</button>
+    </div>
+
     <div class="card">
       <div class="card-title"><i class="fa fa-building"></i> Informations pharmacie</div>
       <div class="pharma-grid">
@@ -1042,6 +1051,7 @@ let fileQueue = [];
 let pendingDeleteIdx = null;
 let navTimer = null;
 let sessionFactures = 0;  // factures analysées cette session
+let saisieFilter = null;  // null=toutes, number=index fileQueue actif
 
 // ═══ SORT STATE ═══════════════════════════════════════════════════════════════
 let sortCol = null;
@@ -1078,6 +1088,50 @@ function go(t) {
   });
   if(t==='upload') resetFile();
   if(t==='export') { refreshExportStats(); renderPharmaChart(); }
+  if(t==='saisie') updateSaisieNav();
+}
+
+// ═══ NAVIGATEUR DE FACTURES ══════════════════════════════════════════════════
+function updateSaisieNav(){
+  const done=fileQueue.filter(e=>e.status==='done'&&e.rows&&e.rows.length);
+  const nav=document.getElementById('invoice-nav');
+  if(!nav) return;
+  if(done.length<1){nav.style.display='none';saisieFilter=null;renderTable();return;}
+  nav.style.display='flex';
+  const label=document.getElementById('invoice-nav-label');
+  if(saisieFilter===null){
+    label.textContent='Toutes les factures ('+done.length+')';
+  } else {
+    const entry=fileQueue[saisieFilter];
+    if(!entry){saisieFilter=null;label.textContent='Toutes les factures ('+done.length+')';}
+    else{
+      // Find position among done entries
+      const doneIdxs=fileQueue.map((e,i)=>e.status==='done'&&e.rows&&e.rows.length?i:-1).filter(i=>i>=0);
+      const pos=doneIdxs.indexOf(saisieFilter);
+      const nom=entry.pharmacie||entry.name;
+      label.textContent=(pos+1)+'/'+done.length+' — '+nom+(entry.typeEtab?' ['+entry.typeEtab.replace('_',' ')+']':'');
+    }
+  }
+  renderTable();
+}
+
+function setInvoiceFilter(idx){
+  saisieFilter=idx;
+  updateSaisieNav();
+}
+
+function navInvoice(dir){
+  const doneIdxs=fileQueue.map((e,i)=>e.status==='done'&&e.rows&&e.rows.length?i:-1).filter(i=>i>=0);
+  if(!doneIdxs.length) return;
+  if(saisieFilter===null){
+    saisieFilter=dir>0?doneIdxs[0]:doneIdxs[doneIdxs.length-1];
+  } else {
+    const pos=doneIdxs.indexOf(saisieFilter);
+    const next=pos+dir;
+    if(next<0||next>=doneIdxs.length){saisieFilter=null;}
+    else{saisieFilter=doneIdxs[next];}
+  }
+  updateSaisieNav();
 }
 
 // ═══ CLOCK ════════════════════════════════════════════════════════════════════
@@ -1432,7 +1486,7 @@ async function extractAll() {
     showProgress(i,fileQueue.length,entry.name);
     setStatus('loading','Analyse '+(i+1)+'/'+fileQueue.length+' — '+entry.name);
 
-    const prompt=`Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire). Analyse cette image de facture pharmaceutique.
+    const prompt=`Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire). Analyse cette image de facture médicale/pharmaceutique.
 
 RÈGLES IMPORTANTES :
 1. Champ "patient" : mets le nom du patient/bénéficiaire s'il est indiqué sur la facture. Sinon laisse vide.
@@ -1440,11 +1494,17 @@ RÈGLES IMPORTANTES :
 3. Champ "taux" : toujours laisser à null (vide), même si une valeur est visible.
 4. Les "ref_bon" doivent être uniques par ligne — ne pas dupliquer.
 5. NE PAS inclure les lignes de total/sous-total/cumul — seulement les lignes de détail.
-6. Le champ "pharmacie" est le NOM DU FOURNISSEUR (la pharmacie, clinique, hôpital vendeur). Ne jamais mettre "AMAT-CI", "AMAT CI", "DGTCP", "Trésor", ni le nom de l'organisation bénéficiaire.
+6. Le champ "pharmacie" est le NOM COMPLET DU FOURNISSEUR (ex: "CHU DE YOPOUGON", "PHARMACIE SAINTE BEATRICE", "CLINIQUE AVICENNE", "HÔPITAL GÉNÉRAL DE MARCORY"). Ne jamais mettre "AMAT-CI", "AMAT CI", "DGTCP", "Trésor", ni le nom de l'organisation bénéficiaire.
+7. Le champ "type_etablissement" indique le TYPE du fournisseur :
+   - "CHU" si c'est un Centre Hospitalier Universitaire
+   - "HOPITAL_GENERAL" si c'est un Hôpital Général (hors CHU)
+   - "CLINIQUE" si c'est une clinique privée
+   - "PHARMACIE" si c'est une pharmacie (par défaut si incertain)
 
 Retourne UNIQUEMENT un JSON valide (rien avant, rien après) :
 {
-  "pharmacie": "NOM DE LA PHARMACIE EN MAJUSCULES",
+  "pharmacie": "NOM COMPLET DU FOURNISSEUR EN MAJUSCULES",
+  "type_etablissement": "PHARMACIE",
   "numero_facture": "numéro de facture détecté ou vide",
   "mois": "mois détecté ou vide",
   "annee": "année ou 2025",
@@ -1505,6 +1565,10 @@ Valeurs illisibles = chaîne vide ou 0. Noms TOUJOURS en MAJUSCULES.`;
       // Ne jamais garder AMAT-CI comme nom de pharmacie
       if(/^AMAT[-\s]?CI$|^DGTCP$|^TR.?SOR/i.test(pharmaNom)) pharmaNom='';
       const factureNum=parsed.numero_facture||'';
+      // Type d'établissement détecté par l'IA
+      const TYPES_VALIDES=['CHU','HOPITAL_GENERAL','CLINIQUE','PHARMACIE'];
+      const typeEtab=(parsed.type_etablissement||'').toUpperCase().trim().replace(/\s+/g,'_');
+      entry.typeEtab=TYPES_VALIDES.includes(typeEtab)?typeEtab:'PHARMACIE';
       nouvelles.forEach(r=>{
         r.pharmacie=pharmaNom||r.pharmacie||'';
         r.numero_facture=factureNum||r.numero_facture||'';
@@ -1516,7 +1580,8 @@ Valeurs illisibles = chaîne vide ou 0. Noms TOUJOURS en MAJUSCULES.`;
       entry.lines=nouvelles.length;
       sessionFactures++;
 
-      setQueueItemStatus(i,'done',nouvelles.length+' ligne'+(nouvelles.length>1?'s':''));
+      const typeBadge=entry.typeEtab?` · ${entry.typeEtab.replace('_',' ')}`:'';
+      setQueueItemStatus(i,'done',nouvelles.length+' ligne'+(nouvelles.length>1?'s':'')+typeBadge);
     }catch(err){
       console.error('Erreur fichier',entry.name,':',err.message);
       setQueueItemStatus(i,'error',err.message.substring(0,40));
@@ -1530,6 +1595,7 @@ Valeurs illisibles = chaîne vide ou 0. Noms TOUJOURS en MAJUSCULES.`;
   renderTable();
   autoSave();
   updateDashboard();
+  updateSaisieNav();
 
   showProgress(fileQueue.length,fileQueue.length,'Terminé');
   setTimeout(hideProgress,3000);
@@ -1558,13 +1624,16 @@ function setStatus(type,msg){
 function renderTable(){
   const tb=document.getElementById('tbody');
   tb.innerHTML='';
-  rows.forEach((r,i)=>tb.appendChild(mkRow(r,i)));
-  updateTotals();
+  // Filter by active invoice if saisieFilter is set
+  const entryRows=saisieFilter!==null&&fileQueue[saisieFilter]?(fileQueue[saisieFilter].rows||[]):null;
+  const visibleRows=entryRows?rows.filter(r=>entryRows.includes(r)):rows;
+  visibleRows.forEach(r=>tb.appendChild(mkRow(r,rows.indexOf(r))));
+  updateTotals(visibleRows);
   updateBadge();
   const empty=document.getElementById('empty-state');
-  empty.style.display=rows.length===0?'block':'none';
+  empty.style.display=visibleRows.length===0?'block':'none';
   const label=document.getElementById('row-count-label');
-  label.textContent=rows.length>0?rows.length+' ligne'+(rows.length>1?'s':''):'';
+  label.textContent=visibleRows.length>0?visibleRows.length+' ligne'+(visibleRows.length>1?'s':'')+''+( saisieFilter!==null?' (filtré)':''):'';
   checkDuplicatesSilent();
   updateSortUI();
   // Re-apply search filter after render
@@ -1631,14 +1700,20 @@ function set(i,f,v){if(rows[i])rows[i][f]=v;}
 function num(i,f,v){if(rows[i])rows[i][f]=parseFloat(v)||0;}
 function autoSave(){try{localStorage.setItem('amat_rows',JSON.stringify(rows));}catch(e){}}
 
-function updateTotals(){
+function updateTotals(src){
+  const data=(src||rows).filter(r=>!r.is_total);
   const tot={total_bon:0,comptant:0,credit:0};
-  rows.filter(r=>!r.is_total).forEach(r=>{
+  data.forEach(r=>{
     tot.total_bon+=(parseFloat(r.total_bon)||0);
     tot.comptant+=(parseFloat(r.comptant)||0);
     tot.credit+=(parseFloat(r.credit)||0);
   });
   const fmt=v=>Math.round(v).toLocaleString('fr-FR')+' F';
+  // Try footer tds
+  const t=document.getElementById('t-tot');const c=document.getElementById('t-cpt');const cr=document.getElementById('t-crd');
+  if(t)t.textContent=fmt(tot.total_bon);
+  if(c)c.textContent=fmt(tot.comptant);
+  if(cr)cr.textContent=fmt(tot.credit);
   const ids={total_bon:'footer-total',comptant:'footer-comptant',credit:'footer-credit'};
   Object.entries(ids).forEach(([k,id])=>{const el=document.getElementById(id);if(el)el.textContent=fmt(tot[k]);});
 }
@@ -1815,8 +1890,25 @@ function exportTxt(){
 }
 
 function exportAll(){
-  exportExcel();
-  setTimeout(()=>exportTxt(),600);
+  // Export each institution separately (one file per pharmacie)
+  const done=fileQueue.filter(e=>e.rows&&e.rows.length);
+  if(!done.length){exportExcel();setTimeout(()=>exportTxt(),600);return;}
+  // Group by normalized pharmacie name
+  const byPharm={};
+  done.forEach((e,i)=>{
+    const k=(e.pharmacie||'').toUpperCase().trim()||('__'+i);
+    if(!byPharm[k])byPharm[k]=[];
+    byPharm[k].push(e);
+  });
+  const groups=Object.values(byPharm);
+  groups.forEach((grp,gi)=>{
+    setTimeout(()=>{
+      // Use exportSingle logic via the first entry's index
+      const idx=fileQueue.indexOf(grp[0]);
+      if(idx>=0) exportSingle(idx);
+    },gi*600);
+  });
+  toast('Export : '+groups.length+' fichier(s) en cours…','success');
 }
 
 // ═══ CONFIG PROXY ══════════════════════════════════════════════════════════════
@@ -1863,33 +1955,103 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 
+function _normalizePharmaNom(s){
+  return (s||'').toUpperCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^A-Z0-9\s]/g,'').trim()
+    .replace(/\s+/g,'_');
+}
+
+function _buildExportFilename(entry){
+  const typeEtab=entry.typeEtab||'PHARMACIE';
+  const pharmaNorm=_normalizePharmaNom(entry.pharmacie);
+  if(!pharmaNorm) return typeEtab+'_'+(entry.facture||'FACTURE')+'.xlsx';
+  // Avoid double prefix: CHU_DE_YOPOUGON + type=CHU → CHU_DE_YOPOUGON (not CHU_CHU_...)
+  const typeNorm=typeEtab.replace('_','');
+  const pharmStart=pharmaNorm.split('_')[0];
+  if(pharmStart===typeEtab||pharmStart===typeNorm){
+    return pharmaNorm+'.xlsx';
+  }
+  return typeEtab+'_'+pharmaNorm+'.xlsx';
+}
+
 function exportSingle(i){
   const entry=fileQueue[i];
   if(!entry||!entry.rows||!entry.rows.length){toast('Aucune donnée pour ce fichier','error');return;}
   if(typeof XLSX==='undefined'){toast('Bibliothèque Excel non chargée','error');return;}
+
+  // Find all queue entries with same institution (same pharmacie name)
+  const nomRef=(entry.pharmacie||'').toUpperCase().trim();
+  const grouped=fileQueue.filter((e,idx)=>
+    e.rows&&e.rows.length&&(e.pharmacie||'').toUpperCase().trim()===nomRef
+  );
+  const hasMultiple=grouped.length>1;
+
   const headers=['PHARMACIE','N° FACTURE','DATE','RÉF. BON','SALARIÉ','MATRICULE','PATIENT','TOTAL BON','TAUX','COMPTANT','CRÉDIT'];
-  const dataRows=entry.rows.map(r=>[
-    (r.pharmacie||entry.pharmacie||'').toUpperCase(),
-    r.numero_facture||entry.facture||'',
-    r.date||'',
-    r.ref_bon||'',
-    r.salarie||'',
-    r.matricule||'',
-    (r.patient||'').toUpperCase(),
-    parseFloat(r.total_bon)||0,
-    r.taux!=null&&r.taux!==''?parseFloat(r.taux):null,
-    parseFloat(r.comptant)||0,
-    parseFloat(r.credit)||0
-  ]);
+  const wsData=[headers];
+  // Track which row indices belong to which invoice (for coloring)
+  const invoiceBreaks=[]; // {startRow, label}
+
+  grouped.forEach((e,gIdx)=>{
+    if(hasMultiple){
+      // Separator/header row for this invoice
+      const sepLabel='── FACTURE '+(gIdx+1)+' : '+(e.facture||e.name)+' ──';
+      const sepRow=[sepLabel,'','','','','','','','','',''];
+      invoiceBreaks.push({rowIdx:wsData.length, label:sepLabel, isSecond:gIdx>0});
+      wsData.push(sepRow);
+    }
+    e.rows.forEach(r=>{
+      wsData.push([
+        (r.pharmacie||e.pharmacie||'').toUpperCase(),
+        r.numero_facture||e.facture||'',
+        r.date||'',
+        r.ref_bon||'',
+        r.salarie||'',
+        r.matricule||'',
+        (r.patient||'').toUpperCase(),
+        parseFloat(r.total_bon)||0,
+        r.taux!=null&&r.taux!==''?parseFloat(r.taux):null,
+        parseFloat(r.comptant)||0,
+        parseFloat(r.credit)||0
+      ]);
+    });
+  });
+
   const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet([headers,...dataRows]);
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
   ws['!cols']=[{wch:30},{wch:16},{wch:12},{wch:12},{wch:22},{wch:12},{wch:22},{wch:12},{wch:8},{wch:12},{wch:12}];
-  XLSX.utils.book_append_sheet(wb,ws,'Factures');
-  const baseName=entry.name.replace(/\.[^.]+$/,'').replace(/[^A-Z0-9_\-]/gi,'_');
-  const pharma=(entry.pharmacie||'').replace(/[^A-Z0-9_]/gi,'_')||baseName;
-  const filename=pharma+'.xlsx';
+
+  // Apply red background to separator rows and rows from 2nd+ invoice
+  if(hasMultiple){
+    const redFill={patternType:'solid',fgColor:{rgb:'FFCCCC'}};
+    const sepFill={patternType:'solid',fgColor:{rgb:'FF9999'}};
+    const redFont={bold:true,color:{rgb:'990000'}};
+    let currentIsSecond=false;
+    for(let rowIdx=1;rowIdx<wsData.length;rowIdx++){
+      const breakInfo=invoiceBreaks.find(b=>b.rowIdx===rowIdx);
+      if(breakInfo){
+        currentIsSecond=breakInfo.isSecond;
+        // Style separator row
+        for(let c=0;c<11;c++){
+          const ref=XLSX.utils.encode_cell({r:rowIdx,c});
+          if(!ws[ref])ws[ref]={t:'s',v:''};
+          ws[ref].s={fill:currentIsSecond?{patternType:'solid',fgColor:{rgb:'CC0000'}}:{patternType:'solid',fgColor:{rgb:'1E7A3A'}},font:{bold:true,color:{rgb:'FFFFFF'}}};
+        }
+      } else if(currentIsSecond){
+        // Tint data rows from 2nd+ invoice in light red
+        for(let c=0;c<11;c++){
+          const ref=XLSX.utils.encode_cell({r:rowIdx,c});
+          if(ws[ref])ws[ref].s={fill:redFill};
+        }
+      }
+    }
+  }
+
+  const sheetName=(nomRef||'Factures').substring(0,31);
+  XLSX.utils.book_append_sheet(wb,ws,sheetName);
+  const filename=_buildExportFilename(entry);
   XLSX.writeFile(wb,filename);
-  toast('Téléchargé : '+filename,'success');
+  toast('Téléchargé : '+filename+(hasMultiple?' ('+grouped.length+' factures groupées)':''),'success');
 }
 
 
