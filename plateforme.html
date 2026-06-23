@@ -503,6 +503,29 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
 .modal p{font-size:13px;color:#6B7C72;margin-bottom:24px;line-height:1.7}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end}
 
+/* ─── PREVIEW MODAL ─────────────────────────────────────────────────────────── */
+.modal-preview{
+  background:#fff;border-radius:var(--r24);padding:28px;
+  width:94vw;max-width:1200px;max-height:90vh;overflow:hidden;
+  display:flex;flex-direction:column;
+  box-shadow:0 28px 80px rgba(0,0,0,.28);
+  animation:popIn .28s cubic-bezier(.34,1.56,.64,1)
+}
+.preview-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-shrink:0}
+.preview-header h3{flex:1;font-size:16px;font-weight:700;color:var(--text1);margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.preview-body{display:flex;gap:20px;overflow:hidden;flex:1;min-height:0}
+.preview-img-side{flex:0 0 38%;max-width:38%;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.preview-img-side img{width:100%;border-radius:10px;border:1px solid var(--border);display:block}
+.preview-pdf-placeholder{width:100%;height:200px;background:#FFF3F0;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:48px}
+.preview-stats{display:flex;gap:10px;flex-wrap:wrap}
+.preview-stat{background:#F5FAF7;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px}
+.preview-stat strong{display:block;font-size:16px;color:var(--g1);font-weight:700}
+.preview-table-side{flex:1;overflow:auto;min-width:0}
+.preview-tbl{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+.preview-tbl th{background:var(--g2);color:#fff;padding:7px 10px;text-align:left;position:sticky;top:0}
+.preview-tbl td{padding:6px 10px;border-bottom:1px solid #E8F0EB;color:var(--text1)}
+.preview-tbl tr:nth-child(even) td{background:#F5FAF7}
+.preview-tbl tr:hover td{background:#E8F5EE}
 /* ─── WELCOME MODAL ─────────────────────────────────────────────────────────── */
 #welcome-overlay{
   position:fixed;inset:0;z-index:8000;
@@ -718,6 +741,28 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
       <button class="btn btn-danger" id="modal-confirm-btn">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="preview-overlay" onclick="closePreview(event)">
+  <div class="modal-preview">
+    <div class="preview-header">
+      <h3 id="preview-title">Aperçu du traitement</h3>
+      <button onclick="document.getElementById('preview-overlay').classList.remove('open')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);padding:4px 8px;border-radius:6px;line-height:1">✕</button>
+    </div>
+    <div class="preview-body">
+      <div class="preview-img-side">
+        <img id="preview-img" src="" alt="Facture originale" style="display:none">
+        <div id="preview-pdf-ph" class="preview-pdf-placeholder" style="display:none">📄</div>
+        <div class="preview-stats" id="preview-stats"></div>
+      </div>
+      <div class="preview-table-side">
+        <table class="preview-tbl">
+          <thead><tr id="preview-thead"></tr></thead>
+          <tbody id="preview-tbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -1273,7 +1318,8 @@ function renderQueue(){
           <div class="fq-progress" id="fq-prog-${i}" style="flex:1;${entry.status==='processing'?'':'display:none'}">
             <div class="fq-bar" id="fq-bar-${i}" style="width:${entry.status==='done'?'100':0}%"></div>
           </div>
-          <div id="fq-dl-${i}" style="${entry.status==='done'&&entry.rows?.length?'':'display:none'}">
+          <div id="fq-dl-${i}" style="${entry.status==='done'&&entry.rows?.length?'':'display:none'};display:flex;gap:6px;align-items:center">
+            <button onclick="previewFile(${i})" title="Aperçu des données extraites" style="background:#1A4A8A;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;white-space:nowrap"><i class="fa fa-eye"></i> Voir</button>
             <button onclick="exportSingle(${i})" title="Télécharger ce fichier" style="background:#1E7A3A;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;white-space:nowrap"><i class="fa fa-download"></i> Excel</button>
           </div>
         </div>
@@ -1650,6 +1696,46 @@ function closeModal(){
   const modal=document.getElementById('modal-overlay');
   if(modal)modal.classList.remove('open');
   pendingDeleteIdx=null;
+}
+
+function previewFile(i){
+  const entry=fileQueue[i];
+  if(!entry||!entry.rows||!entry.rows.length){toast('Aucune donnée extraite pour ce fichier','error');return;}
+  const title=entry.pharmacie
+    ?entry.name+' — '+entry.pharmacie+(entry.facture?' · '+entry.facture:'')
+    :entry.name;
+  document.getElementById('preview-title').textContent=title;
+  const imgEl=document.getElementById('preview-img');
+  const pdfPh=document.getElementById('preview-pdf-ph');
+  if(entry.preview&&entry.type&&entry.type.startsWith('image/')){
+    imgEl.src=entry.preview;imgEl.style.display='block';pdfPh.style.display='none';
+  } else if(entry.type==='application/pdf'){
+    imgEl.style.display='none';pdfPh.style.display='flex';
+  } else {
+    imgEl.style.display='none';pdfPh.style.display='none';
+  }
+  const totalBon=entry.rows.reduce((s,r)=>s+(parseFloat(r.total_bon)||0),0);
+  document.getElementById('preview-stats').innerHTML=
+    `<div class="preview-stat"><strong>${entry.rows.length}</strong>ligne${entry.rows.length>1?'s':''}</div>`+
+    `<div class="preview-stat"><strong>${entry.pharmacie||'—'}</strong>pharmacie</div>`+
+    (totalBon?`<div class="preview-stat"><strong>${totalBon.toLocaleString('fr-FR',{minimumFractionDigits:0})}</strong>total XOF</div>`:'');
+  const cols=[
+    {h:'RÉF. BON',k:'ref_bon'},{h:'DATE',k:'date'},
+    {h:'SALARIÉ',k:'salarie'},{h:'MATRICULE',k:'matricule'},
+    {h:'PATIENT',k:'patient'},{h:'TOTAL BON',k:'total_bon'},
+    {h:'COMPTANT',k:'comptant'},{h:'CRÉDIT',k:'credit'}
+  ];
+  document.getElementById('preview-thead').innerHTML=cols.map(c=>`<th>${c.h}</th>`).join('');
+  document.getElementById('preview-tbody').innerHTML=entry.rows.map(r=>
+    `<tr>${cols.map(c=>`<td>${r[c.k]||''}</td>`).join('')}</tr>`
+  ).join('');
+  document.getElementById('preview-overlay').classList.add('open');
+}
+
+function closePreview(e){
+  if(!e||e.target===document.getElementById('preview-overlay')){
+    document.getElementById('preview-overlay').classList.remove('open');
+  }
 }
 
 // ═══ GROUPEMENT PAR PHARMACIE ═════════════════════════════════════════════════
