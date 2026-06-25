@@ -1589,7 +1589,7 @@ Valeurs illisibles = chaîne vide ou 0. Noms TOUJOURS en MAJUSCULES.`;
         body:JSON.stringify({
           max_tokens:8096,
           messages:[{role:'user',content:[
-            {type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}},
+            (entry.type==='application/pdf' ? {type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}} : {type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}}),
             {type:'text',text:prompt}
           ]}]
         })
