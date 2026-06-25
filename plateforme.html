@@ -636,6 +636,21 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
   .chart-wrap{flex-direction:column;align-items:flex-start}
   .chart-canvas-wrap{width:140px;height:140px}
 }
+
+/* ─── WELCOME MODAL ─────────────────────────────────────────────────────────── */
+.welcome-overlay{position:fixed;inset:0;background:rgba(0,20,10,.7);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);animation:fadeIn .4s ease}
+.welcome-box{background:#fff;border-radius:20px;padding:40px 44px;max-width:480px;width:90%;text-align:center;box-shadow:0 24px 80px rgba(14,92,46,.4);position:relative;animation:slideUp .4s ease}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.welcome-logo{font-size:56px;margin-bottom:12px}
+.welcome-box h1{font-size:22px;font-weight:800;color:var(--g1);margin-bottom:6px}
+.welcome-box p{font-size:14px;color:var(--text3);line-height:1.6;margin-bottom:24px}
+.welcome-progress{height:4px;background:#E8F5EC;border-radius:2px;margin-bottom:20px;overflow:hidden}
+.welcome-bar{height:100%;background:linear-gradient(90deg,var(--g2),var(--g1));border-radius:2px;animation:progressAnim 4s linear forwards}
+@keyframes progressAnim{from{width:0}to{width:100%}}
+.welcome-close-btn{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);line-height:1;padding:4px 8px;border-radius:6px}
+.welcome-close-btn:hover{background:#F0F4F0;color:var(--g1)}
+body.dark .welcome-box{background:#0E1D14;border:1px solid #1E4030}
+body.dark .welcome-progress{background:#132818}
 </style>
 </head>
 <body>
@@ -1483,7 +1498,7 @@ function loadFiles(files) {
   fileQueue = [];
   let loaded = 0;
   files.forEach((f,i)=>{
-    const entry = {file:f, name:f.name, size:f.size, data:null, type:f.type, status:'pending', lines:0};
+    const entry = {file:f, name:f.name, size:f.size, data:null, type:f.type, status:'pending', lines:0, queueIdx:i};
     fileQueue.push(entry);
     const reader = new FileReader();
     reader.onload = ev => {
@@ -2173,7 +2188,7 @@ function selectTypeFact(type){
   currentTypeFact=type;
   ['pharmacie','publique','consultation'].forEach(function(t){
     var btn=document.getElementById('tfbtn-'+t);
-    if(btn)btn.classList.toggle('active',t===type);
+    if(btn)btn.classList.toggle('selected',t===type);
   });
   var dz=document.getElementById('dz');
   if(dz){dz.style.opacity='1';dz.style.pointerEvents='auto';dz.title='';}
@@ -2284,6 +2299,12 @@ function testProxy(){
   });
 }
 
+
+// ═══ WELCOME MODAL ════════════════════════════════════════════════════════════
+function closeWelcome(){
+  var el=document.getElementById('welcome-overlay');
+  if(el){el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(function(){el.remove();},300);}
+}
 // ═══ INIT ════════════════════════════════════════════════════════════════════
 (function init(){
   if(localStorage.getItem('amat_dark')==='1'){
@@ -2297,8 +2318,25 @@ function testProxy(){
   setTimeout(function(){
     var s=document.createElement('script');s.src='/beneficiaires.js';s.async=true;document.body.appendChild(s);
   },1000);
+  // Auto-fermeture welcome modal après 4s
+  setTimeout(function(){closeWelcome();},4000);
 })();
 
 </script>
+
+<!-- ─── MODAL DE BIENVENUE ──────────────────────────────────────────────────── -->
+<div class="welcome-overlay" id="welcome-overlay">
+  <div class="welcome-box">
+    <button class="welcome-close-btn" onclick="closeWelcome()" title="Fermer">✕</button>
+    <div class="welcome-logo">🏥</div>
+    <h1>Bienvenue sur AMAT-CI</h1>
+    <p>Plateforme de numérisation des factures pharmaceutiques<br>
+    <strong>Direction Générale du Trésor et de la Comptabilité Publique</strong></p>
+    <div class="welcome-progress"><div class="welcome-bar"></div></div>
+    <button class="btn btn-green" onclick="closeWelcome()" style="padding:12px 36px;font-size:15px;font-weight:700">
+      <i class="fa fa-arrow-right"></i> Commencer
+    </button>
+  </div>
+</div>
 </body>
 </html>
