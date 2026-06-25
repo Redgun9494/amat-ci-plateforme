@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AMAT-CI — Plateforme factures pharmaceutiques v3</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -257,6 +258,23 @@ body::before{
 .gp-fill-done{animation:gradMove 1.8s linear infinite,completePulse .6s ease 3!important}
 .gp-pct-pop{animation:pctPop .55s cubic-bezier(.34,1.56,.64,1)!important}
 .gp-footer{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text3)}
+
+/* ─── TYPE FACTURE SELECTOR ─────────────────────────────────────────────────── */
+.tf-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:11px 22px;border-radius:10px;border:2px solid var(--border);
+  background:#fff;color:var(--text2);font-size:14px;font-weight:600;
+  cursor:pointer;transition:all .22s cubic-bezier(.4,0,.2,1);font-family:inherit;
+}
+.tf-btn:hover{border-color:var(--g3);color:var(--g1);background:var(--pale);transform:translateY(-1px)}
+.tf-btn.selected{
+  border-color:var(--g2);background:linear-gradient(135deg,var(--g2),var(--g1));
+  color:#fff;box-shadow:0 4px 16px rgba(14,92,46,.35);transform:translateY(-2px)
+}
+.tf-btn.selected i{color:#fff}
+body.dark .tf-btn{background:#0E1D14;border-color:#1E4030;color:#78A888}
+body.dark .tf-btn:hover{background:#132818;border-color:#2E7D50;color:#A8CEB8}
+body.dark .tf-btn.selected{background:linear-gradient(135deg,#1E7A3A,#0D5C2E);color:#fff}
 
 /* ─── DARK MODE ─────────────────────────────────────────────────────────────── */
 body.dark{background:#0F1F17!important;color:#D8EDE0}
@@ -853,7 +871,7 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
         <textarea id="bene-csv-input" placeholder="Collez votre CSV ici...&#10;1234ABC;KOUAME JEAN;80&#10;5678DEF;DIALLO FATOU;100"></textarea>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
           <button class="btn btn-primary" onclick="importBeneText()" style="font-size:13px;padding:8px 18px"><i class="fa fa-upload"></i> Importer le texte</button>
-          <label class="btn btn-outline" style="font-size:13px;padding:8px 18px;cursor:pointer;margin:0"><i class="fa fa-file-alt"></i> Choisir un fichier CSV<input type="file" accept=".csv,.txt" onchange="importBeneFile(event)" style="display:none"></label>
+          <label class="btn btn-outline" style="font-size:13px;padding:8px 18px;cursor:pointer;margin:0"><i class="fa fa-file-alt"></i> CSV / Excel<input type="file" accept=".csv,.txt,.xlsx,.xls" onchange="importBeneFile(event)" style="display:none"></label>
         </div>
       </div>
       <div class="bene-toolbar">
@@ -903,7 +921,30 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
   <div id="screen-upload" class="screen active">
     <div class="card">
       <div class="card-title"><i class="fa fa-file-invoice"></i> Document à analyser</div>
-      <div class="drop-zone" id="dz" ondragover="doDrag(event)" ondragleave="doLeave()" ondrop="doDrop(event)">
+
+      <!-- ── SÉLECTEUR TYPE FACTURE (obligatoire) ── -->
+      <div style="margin-bottom:18px">
+        <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+          <i class="fa fa-tag" style="color:var(--g2)"></i>
+          Type de facture <span style="color:#B33;font-size:11px;font-weight:700;margin-left:4px">* obligatoire</span>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap" id="type-facture-btns">
+          <button onclick="selectTypeFact('pharmacie')" id="tfbtn-pharmacie" class="tf-btn">
+            <i class="fa fa-pills"></i> Pharmacie
+          </button>
+          <button onclick="selectTypeFact('publique')" id="tfbtn-publique" class="tf-btn">
+            <i class="fa fa-hospital"></i> Publique
+          </button>
+          <button onclick="selectTypeFact('consultation')" id="tfbtn-consultation" class="tf-btn">
+            <i class="fa fa-stethoscope"></i> Consultation
+          </button>
+        </div>
+        <div id="tf-warning" style="display:none;margin-top:8px;font-size:12px;color:#B33;font-weight:600">
+          <i class="fa fa-exclamation-triangle"></i> Veuillez sélectionner un type de facture avant d'importer.
+        </div>
+      </div>
+
+      <div class="drop-zone" id="dz" ondragover="doDrag(event)" ondragleave="doLeave()" ondrop="doDrop(event)" style="opacity:.45;pointer-events:none;transition:opacity .3s" title="Sélectionnez d'abord un type de facture">
         <div class="icon-upload"><i class="fa fa-cloud-upload-alt"></i></div>
         <h3>Glissez vos factures ici</h3>
         <p>ou <strong style="color:var(--g2)">cliquez pour sélectionner</strong> (jusqu'à 10 fichiers)</p>
@@ -1492,14 +1533,16 @@ function renderPharmaChart(){
 }
 
 // ═══ UPLOAD ══════════════════════════════════════════════════════════════════
-function doDrag(e){e.preventDefault();document.getElementById('dz').classList.add('over')}
+function doDrag(e){if(!currentTypeFact){e.preventDefault();return;}e.preventDefault();document.getElementById('dz').classList.add('over')}
 function doLeave(){document.getElementById('dz').classList.remove('over')}
 function doDrop(e){
   e.preventDefault();doLeave();
+  if(!requireTypeFact()) return;
   const files=[...e.dataTransfer.files].filter(f=>f.type.startsWith('image/')||f.type==='application/pdf');
   if(files.length) loadFiles(files);
 }
 function onFile(e){
+  if(!requireTypeFact()){e.target.value='';return;}
   const files=[...e.target.files];
   if(files.length) loadFiles(files);
 }
@@ -1745,6 +1788,8 @@ async function extractAll(){
         nouvelles.forEach(r=>{r.pharmacie=pharmaNom||r.pharmacie||'';r.numero_facture=factureNum||r.numero_facture||'';});
         detectAndRemoveTotalRow(nouvelles);
         applyBusinessRules(nouvelles);
+        // Tagger chaque ligne avec le type de facture courant
+        if(currentTypeFact) nouvelles.forEach(r=>r._typeFacture=currentTypeFact);
         const nbTaux=applyBeneTaux(nouvelles); // ← auto-fill taux
         _sessionBeneMatched+=nbTaux;
         rows=[...rows,...nouvelles];
@@ -2315,6 +2360,46 @@ function celebrateExport(nbFiles){
 }
 
 
+// ═══ TYPE DE FACTURE ═════════════════════════════════════════════════════════
+let currentTypeFact=null; // 'pharmacie' | 'publique' | 'consultation'
+
+const TYPE_LABELS={
+  pharmacie:{label:'Pharmacie',icon:'fa-pills',color:'#0D5C2E'},
+  publique:{label:'Publique',icon:'fa-hospital',color:'#1565C0'},
+  consultation:{label:'Consultation',icon:'fa-stethoscope',color:'#6A1B9A'}
+};
+
+function selectTypeFact(type){
+  currentTypeFact=type;
+  // Mettre à jour les boutons
+  ['pharmacie','publique','consultation'].forEach(t=>{
+    const btn=document.getElementById('tfbtn-'+t);
+    if(btn) btn.classList.toggle('selected',t===type);
+  });
+  // Activer la drop zone
+  const dz=document.getElementById('dz');
+  if(dz){dz.style.opacity='1';dz.style.pointerEvents='auto';dz.removeAttribute('title');}
+  document.getElementById('tf-warning').style.display='none';
+  // Afficher badge dans KPI ou header
+  let badge=document.getElementById('tf-badge-active');
+  if(!badge){
+    badge=document.createElement('div');badge.id='tf-badge-active';
+    badge.style.cssText='display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;color:#fff;margin-left:12px';
+    const title=document.querySelector('.card-title');
+    if(title) title.appendChild(badge);
+  }
+  const t=TYPE_LABELS[type];
+  badge.style.background=t.color;
+  badge.innerHTML=`<i class="fa ${t.icon}"></i> ${t.label}`;
+}
+
+function requireTypeFact(){
+  if(currentTypeFact) return true;
+  document.getElementById('tf-warning').style.display='block';
+  document.getElementById('tf-warning').scrollIntoView({behavior:'smooth',block:'center'});
+  return false;
+}
+
 // ═══ DARK MODE ═══════════════════════════════════════════════════════════════
 function toggleDark(){
   const on=document.body.classList.toggle('dark');
@@ -2365,9 +2450,40 @@ function importBeneText(){
 
 function importBeneFile(e){
   const f=e.target.files[0];if(!f)return;
-  const reader=new FileReader();
-  reader.onload=ev=>{const parsed=_parseBeneCSV(ev.target.result);_mergeBene(parsed);};
-  reader.readAsText(f,'UTF-8');
+  const isExcel=/\.(xlsx|xls)$/i.test(f.name);
+  if(isExcel){
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const wb=XLSX.read(ev.target.result,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+        // Détection flexible des colonnes
+        const parsed=rows.map(r=>{
+          // Cherche les colonnes par nom approximatif
+          const keys=Object.keys(r).map(k=>({orig:k,low:k.toLowerCase().replace(/[_\s\-]/g,'')}));
+          const find=(...terms)=>{
+            for(const t of terms){
+              const k=keys.find(k=>k.low.includes(t.toLowerCase().replace(/\s/g,'')));
+              if(k) return (r[k.orig]||'').toString().trim();
+            }
+            return '';
+          };
+          const mat=find('matricule','mat','immatriculation').toUpperCase().replace(/[\s\-\.]/g,'');
+          const nom=(find('nom','name','beneficiaire','adherent','prenom')||'').toUpperCase();
+          const tauxRaw=find('taux','rate','pourcentage','pct');
+          const taux=parseFloat(tauxRaw.replace('%','').replace(',','.'));
+          return mat&&nom?{matricule:mat,nom,taux:isNaN(taux)?null:taux}:null;
+        }).filter(Boolean);
+        _mergeBene(parsed);
+      }catch(err){toast('Erreur lecture Excel : '+err.message,'error');}
+    };
+    reader.readAsArrayBuffer(f);
+  } else {
+    const reader=new FileReader();
+    reader.onload=ev=>{const parsed=_parseBeneCSV(ev.target.result);_mergeBene(parsed);};
+    reader.readAsText(f,'UTF-8');
+  }
   e.target.value='';
 }
 
