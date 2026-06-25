@@ -100,6 +100,16 @@ const server = http.createServer(async (req, res) => {
     return sendJSON(res, 404, { error: 'plateforme.html introuvable' });
   }
 
+  // Base bénéficiaires (fichier JS statique — usage interne uniquement)
+  if (req.method === 'GET' && req.url === '/beneficiaires.js') {
+    const bPath = path.join(__dirname, 'beneficiaires.js');
+    if (fs.existsSync(bPath)) {
+      res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+      return res.end(fs.readFileSync(bPath));
+    }
+    return sendJSON(res, 404, { error: 'beneficiaires.js introuvable' });
+  }
+
   // Proxy Anthropic
   if (req.method === 'POST' && req.url === '/analyser') {
     try {
