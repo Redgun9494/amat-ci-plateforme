@@ -631,7 +631,7 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
   display:flex;align-items:center;justify-content:center;
   animation:fadeIn .35s ease
 }
-#welcome-overlay.hidden{display:none}
+#welcome-overlay[style*="display:none"],#welcome-overlay[style*="display: none"]{display:none!important}
 .welcome-box{
   background:#fff;border-radius:var(--r24);padding:0;
   width:100%;max-width:540px;
@@ -642,6 +642,14 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
   background:linear-gradient(135deg,var(--g2) 0%,var(--g1) 60%,#0A3A1C 100%);
   padding:36px 40px 30px;text-align:center;position:relative
 }
+.welcome-close{
+  position:absolute;top:12px;right:14px;
+  background:rgba(255,255,255,.18);border:none;border-radius:50%;
+  width:30px;height:30px;color:#fff;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .18s;z-index:2;line-height:1
+}
+.welcome-close:hover{background:rgba(255,255,255,.35)}
 .welcome-header::after{
   content:'';position:absolute;bottom:-1px;left:0;right:0;height:28px;
   background:#fff;border-radius:28px 28px 0 0
@@ -692,6 +700,7 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
 <div id="welcome-overlay">
   <div class="welcome-box">
     <div class="welcome-header">
+      <button class="welcome-close" onclick="fermerBienvenue()" title="Fermer">✕</button>
       <div class="welcome-logo-text">AMAT-CI</div>
       <div class="welcome-tagline">Assistance Mutuelle des Agents du Trésor de Côte d'Ivoire</div>
     </div>
@@ -1242,7 +1251,13 @@ const CHART_COLORS = ['#1E7A3A','#E8690A','#1A4A8A','#7A1A6A','#0A5A7A','#7A6A0A
 // ═══ NAVIGATION ══════════════════════════════════════════════════════════════
 function fermerBienvenue() {
   const overlay = document.getElementById('welcome-overlay');
-  if(overlay) overlay.classList.add('hidden');
+  if(overlay){
+    overlay.style.display='none';
+    overlay.style.visibility='hidden';
+    overlay.style.pointerEvents='none';
+    overlay.style.zIndex='-1';
+  }
+  try{localStorage.setItem('amat_welcome_seen','1');}catch(e){}
 }
 
 function go(t) {
@@ -2040,10 +2055,4 @@ function previewFile(i){
   const credit=entry.rows.reduce((s,r)=>s+(parseFloat(r.credit)||0),0);
   const fmt=v=>Math.round(v).toLocaleString('fr-FR')+' F';
   document.getElementById('preview-stats').innerHTML=
-    `<span><i class="fa fa-list"></i> ${entry.rows.length} ligne(s)</span>`+
-    `<span><i class="fa fa-money-bill"></i> Total: ${fmt(totalBon)}</span>`+
-    `<span style="color:var(--orange)"><i class="fa fa-credit-card"></i> Crédit: ${fmt(credit)}</span>`;
-  const cols=[{h:'RÉF. BON',k:'ref_bon'},{h:'DATE',k:'date'},{h:'SALARIÉ',k:'salarie'},{h:'MATRICULE',k:'matricule'},{h:'PATIENT',k:'patient'},{h:'TOTAL BON',k:'total_bon'},{h:'COMPTANT',k:'comptant'},{h:'CRÉDIT',k:'credit'}];
-  document.getElementById('preview-thead').innerHTML=cols.map(c=>`<th>${c.h}</th>`).join('');
-  document.getElementById('preview-tbody').innerHTML=entry.rows.map(r=>`<tr>${cols.map(c=>`<td>${r[c.k]||''}</td>`).join('')}</tr>`).join('');
-  d
+    `<span><i class="fa fa-list">
