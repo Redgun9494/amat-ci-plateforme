@@ -2106,8 +2106,10 @@ function exporterTXT(){
 // ═══ BÉNÉFICIAIRES (liste locale) ════════════════════════════════════════════
 function getBene(){try{return JSON.parse(localStorage.getItem('amat_bene')||'[]');}catch(e){return[];}}
 function saveBene(list){try{localStorage.setItem('amat_bene',JSON.stringify(list));}catch(e){}}
-function _updateBeneBadge(){const n=getBene().length;const b=document.getElementById('bene-badge');if(b)b.textContent=n?n:'';}
-function importBeneFile(){const inp=document.getElementById('bene-file-input');if(inp)inp.click();}
+function _updateBeneBadge(){const n=getBene().length;const b=document.getElementById('bene-badge');if(b)b.textContent=n?n:'';const c=document.getElementById('bene-count');if(c)c.textContent=n;}
+function importBeneFile(e){
+  if(e&&e.target&&e.target.files&&e.target.files.length){onBeneFile(e);return;}
+}
 function onBeneFile(e){
   const file=e.target.files[0];if(!file)return;
   const ext=file.name.split('.').pop().toLowerCase();
@@ -2132,11 +2134,16 @@ function onBeneFile(e){
   e.target.value='';
 }
 function lookupBene(mat,nom){const list=getBene();if(mat)return list.find(b=>b.matricule===mat)||null;if(nom)return list.find(b=>b.nom&&(nom.includes(b.nom)||b.nom.includes(nom)))||null;return null;}
-function openBeneModal(){document.getElementById('bene-modal').style.display='flex';renderBeneTable();}
-function closeBeneModal(){document.getElementById('bene-modal').style.display='none';}
+function openBeneModal(){document.getElementById('bene-overlay').style.display='flex';renderBeneTable();_updateBeneBadge();}
+function closeBeneModal(){document.getElementById('bene-overlay').style.display='none';}
 function renderBeneTable(){
-  const list=getBene();const tbody=document.getElementById('bene-tbody');if(!tbody)return;
+  const all=getBene();
+  const q=(document.getElementById('bene-search')?.value||'').toUpperCase().trim();
+  const list=q?all.filter(b=>(b.matricule||'').includes(q)||(b.nom||'').includes(q)):all;
+  const tbody=document.getElementById('bene-tbody');if(!tbody)return;
   tbody.innerHTML=list.length?list.map((b,i)=>`<tr><td>${esc(b.matricule)}</td><td>${esc(b.nom)}</td><td>${b.taux!=null?b.taux+'%':'-'}</td><td><button onclick="deleteBene(${i})" style="background:none;border:none;color:#B33;cursor:pointer">✕</button></td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:#888;padding:20px">Aucun bénéficiaire</td></tr>';
+  const cnt=document.getElementById('bene-count');if(cnt)cnt.textContent=all.length;
+  const cov=document.getElementById('bene-coverage');if(cov)cov.textContent=all.length?Math.round(all.filter(b=>b.taux!=null).length/all.length*100)+'%':'0%';
 }
 function deleteBene(i){const l=getBene();l.splice(i,1);saveBene(l);_updateBeneBadge();renderBeneTable();}
 function exportBeneCSV(){
@@ -2153,14 +2160,7 @@ function toggleDark(){
   const ic=document.getElementById('dark-icon');if(ic)ic.className=dark?'fa fa-sun':'fa fa-moon';
 }
 
-// ═══ NAVIGATION ══════════════════════════════════════════════════════════════
-function go(t){
-  document.querySelectorAll('.tab-content').forEach(el=>el.style.display='none');
-  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
-  const panel=document.getElementById('tab-'+t);if(panel)panel.style.display='block';
-  const btn=document.getElementById('tbtn-'+t);if(btn)btn.classList.add('active');
-  if(t==='export')refreshExportStats();
-}
+
 
 
 // ═══ SÉLECTION TYPE DE FACTURE ════════════════════════════════════════════════
