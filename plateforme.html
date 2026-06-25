@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AMAT-CI — Plateforme factures pharmaceutiques v3</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="/beneficiaires.js" defer></script>
+<!-- beneficiaires.js chargé dynamiquement après l'interactivité de la page -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -2054,5 +2054,4 @@ function previewFile(i){
   const totalBon=entry.rows.reduce((s,r)=>s+(parseFloat(r.total_bon)||0),0);
   const credit=entry.rows.reduce((s,r)=>s+(parseFloat(r.credit)||0),0);
   const fmt=v=>Math.round(v).toLocaleString('fr-FR')+' F';
-  document.getElementById('preview-stats').innerHTML=
-    `<span><i class="fa fa-list">
+  document.getElementById('preview-stats').innerHTML
