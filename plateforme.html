@@ -1455,6 +1455,11 @@ function renderPharmaChart(){
 }
 
 // ═══ UPLOAD ══════════════════════════════════════════════════════════════════
+function requireTypeFact(){
+  if(currentTypeFact) return true;
+  toast("Selectionnez d'abord le type (Pharmacie / Publique / Consultation)",'error',3000);
+  return false;
+}
 function doDrag(e){if(!currentTypeFact){e.preventDefault();return;}e.preventDefault();document.getElementById('dz').classList.add('over')}
 function doLeave(){document.getElementById('dz').classList.remove('over')}
 function doDrop(e){
