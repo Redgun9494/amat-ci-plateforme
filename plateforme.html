@@ -1154,6 +1154,7 @@ let pendingDeleteIdx = null;
 let navTimer = null;
 let sessionFactures = 0;  // factures analysées cette session
 let saisieFilter = null;  // null=toutes, number=index fileQueue actif
+let currentTypeFact = null; // 'pharmacie' | 'publique' | 'consultation'
 
 // ═══ SORT STATE ═══════════════════════════════════════════════════════════════
 let sortCol = null;
@@ -2161,12 +2162,132 @@ function go(t){
   if(t==='export')refreshExportStats();
 }
 
+
+// ═══ SÉLECTION TYPE DE FACTURE ════════════════════════════════════════════════
+function selectTypeFact(type){
+  currentTypeFact=type;
+  ['pharmacie','publique','consultation'].forEach(function(t){
+    var btn=document.getElementById('tfbtn-'+t);
+    if(btn)btn.classList.toggle('active',t===type);
+  });
+  var dz=document.getElementById('dz');
+  if(dz){dz.style.opacity='1';dz.style.pointerEvents='auto';dz.title='';}
+  toast('Type : '+type.charAt(0).toUpperCase()+type.slice(1),'success',1500);
+}
+
+// ═══ AUTO-FILL TAUX ═══════════════════════════════════════════════════════════
+function applyBeneTaux(lignes){
+  var db=window._AMDB||null;
+  var userList=getBene();
+  if(db&&!db._ni){
+    var ni={};
+    var keys=Object.keys(db.c);
+    for(var ki=0;ki<keys.length;ki++){
+      var e=db.c[keys[ki]];
+      var w=(e[0]||'').split(' ')[0];
+      if(w.length>=2){if(!ni[w])ni[w]=[];ni[w].push([e[0],e[1]]);}
+    }
+    db._ni=ni;
+  }
+  var matched=0;
+  for(var ri=0;ri<lignes.length;ri++){
+    var r=lignes[ri];
+    if(r.taux!=null)continue;
+    var mat=(r.matricule||'').toUpperCase().replace(/[\s\-\.\/]/g,'').trim();
+    var pat=(r.patient||'').toUpperCase().trim();
+    var nom=null,taux=null;
+    if(db&&mat&&db.c[mat]){var ec=db.c[mat];taux=ec[1];nom=ec[0];}
+    else if(db&&mat&&db.m&&db.m[mat]){var em=db.m[mat];taux=em[1];nom=em[0];}
+    else if(db&&db._ni&&pat){
+      var w2=pat.split(/\s+/)[0];
+      var cands=db._ni[w2]||[];
+      var found=null;
+      for(var ci=0;ci<cands.length;ci++){if(pat.includes(cands[ci][0])||cands[ci][0].includes(pat)){found=cands[ci];break;}}
+      if(!found&&cands.length)found=cands[0];
+      if(found){taux=found[1];nom=found[0];}
+    }
+    if(taux==null&&userList.length){
+      var b=null;
+      if(mat)b=userList.find(function(x){return x.matricule===mat;})||null;
+      if(!b&&pat)b=userList.find(function(x){return x.nom&&(pat.includes(x.nom)||x.nom.includes(pat));})||null;
+      if(b&&b.taux!=null)taux=b.taux;
+    }
+    if(taux!=null){r.taux=taux;if(nom&&!r.patient)r.patient=nom;matched++;}
+  }
+  return matched;
+}
+
+// ═══ EXPORT ALIASES ═══════════════════════════════════════════════════════════
+function exportExcel(){exporterExcel();}
+function exportTxt(){exporterTXT();}
+function exportAll(){
+  if(!rows.length){toast('Aucune donnee a exporter','error');return;}
+  exporterExcel();
+  setTimeout(function(){exporterTXT();},400);
+  setTimeout(function(){clearAll();go('upload');toast('Export termine','success');},900);
+}
+function exportSingle(i){
+  var entry=fileQueue[i];if(!entry)return;
+  var pharmRows=rows.filter(function(r){
+    return r._queueIdx===i||(entry.pharmaNom&&(r.pharmacie||'').toUpperCase()===entry.pharmaNom);
+  });
+  if(!pharmRows.length){toast('Aucune ligne pour ce fichier','error');return;}
+  _exportPharmRows(entry.pharmaNom||entry.name,pharmRows);
+}
+
+// ═══ BENEFICIAIRES COMPLEMENT ═════════════════════════════════════════════════
+function importBeneText(){
+  var ta=document.getElementById('bene-csv-input');
+  if(!ta||!ta.value.trim()){toast('Aucun texte a importer','error');return;}
+  var lines=ta.value.trim().split('\n').filter(function(l){return l.trim();});
+  var list=lines.map(function(l){
+    var p=l.split(/[;,\t]/);
+    return{matricule:(p[0]||'').trim().toUpperCase(),nom:(p[1]||'').trim().toUpperCase(),taux:parseFloat(p[2])||null};
+  }).filter(function(b){return b.matricule||b.nom;});
+  var cur=getBene();saveBene(cur.concat(list));_updateBeneBadge();
+  toast(list.length+' beneficiaires importes','success');
+  ta.value='';renderBeneTable();
+}
+function clearBene(){
+  if(!confirm('Vider toute la liste ?'))return;
+  saveBene([]);_updateBeneBadge();renderBeneTable();
+  toast('Liste videe','success');
+}
+
+// ═══ PROXY / CONFIG ═══════════════════════════════════════════════════════════
+function saveProxy(){
+  var inp=document.getElementById('proxy-url');
+  var url=inp?inp.value.trim():'';
+  if(!url){toast('URL vide','error');return;}
+  try{localStorage.setItem('amat_proxy',url);}catch(e){}
+  var b=document.getElementById('badge-ok');if(b)b.style.display='flex';
+  toast('Adresse enregistree','success');
+}
+function testProxy(){
+  var inp=document.getElementById('proxy-url');
+  var saved=localStorage.getItem('amat_proxy')||'';
+  var url=inp?inp.value.trim():saved;
+  if(!url)url=saved;
+  var st=document.getElementById('proxy-status');
+  if(st){st.style.display='block';st.textContent='Test en cours...';st.style.color='var(--text3)';}
+  fetch(url.replace(/\/$/,'')+'/health').then(function(r){return r.json();}).then(function(d){
+    if(st){st.textContent=(d.apiKeyConfigured?'OK cle configuree':'Connecte mais cle API absente');st.style.color='#1E7A3A';}
+    toast('Proxy OK','success');
+  }).catch(function(e){
+    if(st){st.textContent='Erreur : '+e.message;st.style.color='#B33';}
+    toast('Proxy inaccessible','error');
+  });
+}
+
 // ═══ INIT ════════════════════════════════════════════════════════════════════
 (function init(){
   if(localStorage.getItem('amat_dark')==='1'){
     document.body.classList.add('dark');
-    const ic=document.getElementById('dark-icon');if(ic)ic.className='fa fa-sun';
+    var ic=document.getElementById('dark-icon');if(ic)ic.className='fa fa-sun';
   }
+  var pu=document.getElementById('proxy-url');
+  var sp=localStorage.getItem('amat_proxy');
+  if(pu&&sp)pu.value=sp;
   _updateBeneBadge();
   setTimeout(function(){
     var s=document.createElement('script');s.src='/beneficiaires.js';s.async=true;document.body.appendChild(s);
