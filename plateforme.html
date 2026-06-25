@@ -624,62 +624,6 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
 .preview-tbl td{padding:6px 10px;border-bottom:1px solid #E8F0EB;color:var(--text1)}
 .preview-tbl tr:nth-child(even) td{background:#F5FAF7}
 .preview-tbl tr:hover td{background:#E8F5EE}
-/* ─── WELCOME MODAL ─────────────────────────────────────────────────────────── */
-#welcome-overlay{
-  position:fixed;inset:0;z-index:8000;
-  background:rgba(5,28,14,.78);backdrop-filter:blur(10px);
-  display:flex;align-items:center;justify-content:center;
-  animation:fadeIn .35s ease
-}
-#welcome-overlay[style*="display:none"],#welcome-overlay[style*="display: none"]{display:none!important}
-.welcome-box{
-  background:#fff;border-radius:var(--r24);padding:0;
-  width:100%;max-width:540px;
-  box-shadow:0 40px 120px rgba(0,0,0,.5);
-  overflow:hidden;animation:popIn .42s cubic-bezier(.34,1.56,.64,1)
-}
-.welcome-header{
-  background:linear-gradient(135deg,var(--g2) 0%,var(--g1) 60%,#0A3A1C 100%);
-  padding:36px 40px 30px;text-align:center;position:relative
-}
-.welcome-close{
-  position:absolute;top:12px;right:14px;
-  background:rgba(255,255,255,.18);border:none;border-radius:50%;
-  width:30px;height:30px;color:#fff;font-size:16px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:background .18s;z-index:2;line-height:1
-}
-.welcome-close:hover{background:rgba(255,255,255,.35)}
-.welcome-header::after{
-  content:'';position:absolute;bottom:-1px;left:0;right:0;height:28px;
-  background:#fff;border-radius:28px 28px 0 0
-}
-.welcome-logo-text{
-  font-family:'Arial Black',Arial,sans-serif;
-  font-size:38px;font-weight:900;color:#fff;letter-spacing:2px;
-  text-shadow:0 3px 14px rgba(0,0,0,.25)
-}
-.welcome-tagline{font-size:11.5px;color:rgba(255,255,255,.72);margin-top:6px;letter-spacing:.6px}
-.welcome-body{padding:28px 40px 36px;text-align:center}
-.welcome-icon{font-size:46px;margin-bottom:14px;display:inline-block;animation:waveHand 1.6s ease-in-out infinite}
-@keyframes waveHand{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(12deg)}}
-.welcome-title{font-size:22px;font-weight:800;color:var(--g1);margin-bottom:10px}
-.welcome-msg{font-size:14px;color:var(--text2);line-height:1.8;margin-bottom:24px}
-.welcome-features{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:26px;text-align:left}
-.wf{
-  background:#F0FAF4;border:1px solid var(--border);border-radius:var(--r8);
-  padding:12px 14px;display:flex;align-items:center;gap:10px;
-  font-size:12px;font-weight:600;color:#1A5C32;transition:all .2s
-}
-.wf:hover{background:#E4F5EB;transform:translateY(-1px)}
-.wf i{color:var(--g2);font-size:15px;flex-shrink:0}
-.welcome-btn{
-  width:100%;padding:15px;background:linear-gradient(135deg,var(--g2),var(--g1));
-  color:#fff;border:none;border-radius:var(--r12);font-size:15px;font-weight:700;
-  cursor:pointer;transition:all .22s;font-family:inherit;letter-spacing:.4px
-}
-.welcome-btn:hover{background:linear-gradient(135deg,var(--g4),var(--g2));transform:translateY(-2px);box-shadow:0 10px 28px rgba(14,92,46,.42)}
-.welcome-footer{font-size:11px;color:#9AB8A8;margin-top:12px}
 
 /* ─── RESPONSIVE ────────────────────────────────────────────────────────────── */
 @media(max-width:768px){
@@ -696,35 +640,6 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
 </head>
 <body>
 
-<!-- ═══ MODAL BIENVENUE ═══════════════════════════════════════════════════════ -->
-<div id="welcome-overlay">
-  <div class="welcome-box">
-    <div class="welcome-header">
-      <button class="welcome-close" onclick="fermerBienvenue()" title="Fermer">✕</button>
-      <div class="welcome-logo-text">AMAT-CI</div>
-      <div class="welcome-tagline">Assistance Mutuelle des Agents du Trésor de Côte d'Ivoire</div>
-    </div>
-    <div class="welcome-body">
-      <div class="welcome-icon">👋</div>
-      <div class="welcome-title">Bienvenue sur la plateforme</div>
-      <div class="welcome-msg">
-        Numérisez vos factures pharmaceutiques rapidement et précisément
-        grâce à l'intelligence artificielle.<br>
-        <strong style="color:var(--g2)">Importez, vérifiez, exportez</strong> — en quelques clics.
-      </div>
-      <div class="welcome-features">
-        <div class="wf"><i class="fa fa-magic"></i> Analyse IA automatique</div>
-        <div class="wf"><i class="fa fa-layer-group"></i> Jusqu'à 10 factures</div>
-        <div class="wf"><i class="fa fa-building"></i> Tri par pharmacie</div>
-        <div class="wf"><i class="fa fa-file-excel"></i> Export Excel + TXT</div>
-      </div>
-      <button class="welcome-btn" onclick="fermerBienvenue()">
-        <i class="fa fa-arrow-right"></i>&nbsp; Commencer
-      </button>
-      <div class="welcome-footer">DGTCP · Direction Générale du Trésor et de la Comptabilité Publique</div>
-    </div>
-  </div>
-</div>
 
 <!-- ═══ HEADER ═══════════════════════════════════════════════════════════════ -->
 <div class="topbar">
@@ -1249,16 +1164,6 @@ let pharmaChart = null;
 const CHART_COLORS = ['#1E7A3A','#E8690A','#1A4A8A','#7A1A6A','#0A5A7A','#7A6A0A','#4A0A8A','#8A4A0A','#0A7A5A','#6A0A2A'];
 
 // ═══ NAVIGATION ══════════════════════════════════════════════════════════════
-function fermerBienvenue() {
-  const overlay = document.getElementById('welcome-overlay');
-  if(overlay){
-    overlay.style.display='none';
-    overlay.style.visibility='hidden';
-    overlay.style.pointerEvents='none';
-    overlay.style.zIndex='-1';
-  }
-  try{localStorage.setItem('amat_welcome_seen','1');}catch(e){}
-}
 
 function go(t) {
   clearTimeout(navTimer);
@@ -2054,4 +1959,108 @@ function previewFile(i){
   const totalBon=entry.rows.reduce((s,r)=>s+(parseFloat(r.total_bon)||0),0);
   const credit=entry.rows.reduce((s,r)=>s+(parseFloat(r.credit)||0),0);
   const fmt=v=>Math.round(v).toLocaleString('fr-FR')+' F';
-  document.getElementById('preview-stats').innerHTML
+  document.getElementById('preview-stats').innerHTML=
+    `<span><i class="fa fa-list"></i> ${entry.rows.length} ligne(s)</span>`+
+    `<span><i class="fa fa-money-bill"></i> Total: ${fmt(totalBon)}</span>`+
+    `<span style="color:var(--orange)"><i class="fa fa-credit-card"></i> Crédit: ${fmt(credit)}</span>`;
+  const cols=[{h:'RÉF. BON',k:'ref_bon'},{h:'DATE',k:'date'},{h:'SALARIÉ',k:'salarie'},{h:'MATRICULE',k:'matricule'},{h:'PATIENT',k:'patient'},{h:'TOTAL BON',k:'total_bon'},{h:'COMPTANT',k:'comptant'},{h:'CRÉDIT',k:'credit'}];
+  document.getElementById('preview-thead').innerHTML=cols.map(c=>`<th>${c.h}</th>`).join('');
+  document.getElementById('preview-tbody').innerHTML=entry.rows.map(r=>`<tr>${cols.map(c=>`<td>${r[c.k]||''}</td>`).join('')}</tr>`).join('');
+  document.getElementById('preview-overlay').classList.add('open');
+}
+
+function closePreview(e){
+  if(!e||e.target===document.getElementById('preview-overlay')){
+    document.getElementById('preview-overlay').classList.remove('open');
+  }
+}
+
+// ═══ GROUPEMENT PAR PHARMACIE ═════════════════════════════════════════════════
+function groupByPharma(){
+  const groups={};
+  rows.filter(r=>!r.is_total).forEach(r=>{
+    const k=(r.pharmacie||'INCONNUE').toUpperCase().trim();
+    if(!groups[k])groups[k]={nom:k,lignes:[]};
+    groups[k].lignes.push(r);
+  });
+  return Object.values(groups).sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+}
+
+// ═══ EXPORT ════════════════════════════════════════════════════════════════════
+function refreshExportStats(){
+  const lignes=rows.filter(r=>!r.is_total);
+  const tot=lignes.reduce((a,r)=>a+(parseFloat(r.total_bon)||0),0);
+  const credit=lignes.reduce((a,r)=>a+(parseFloat(r.credit)||0),0);
+  const pharmas=new Set(lignes.map(r=>(r.pharmacie||'').trim().toUpperCase()).filter(Boolean));
+  const fmt=v=>Math.round(v).toLocaleString('fr-FR')+' F';
+  const map={'exp-lignes':lignes.length,'exp-pharmas':pharmas.size,'exp-total':fmt(tot),'exp-credit':fmt(credit)};
+  Object.entries(map).forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.textContent=val;});
+  // Stats onglet export
+  const sn=document.getElementById('s-n');const st=document.getElementById('s-tot');const sc=document.getElementById('s-crd');
+  if(sn)sn.textContent=lignes.length;
+  if(st)st.textContent=fmt(tot);
+  if(sc)sc.textContent=fmt(credit);
+}
+
+function _inferTypeFromName(nom){
+  const n=(nom||'').toUpperCase();
+  if(n.includes('CHU'))return 'CHU';
+  if(n.includes('HOPITAL')||n.includes('HÔPITAL'))return 'HOPITAL_GENERAL';
+  if(n.includes('CLINIQUE'))return 'CLINIQUE';
+  return 'PHARMACIE';
+}
+
+function _buildExportFilenameFromParts(typeEtab,pharmaNom){
+  const norm=(pharmaNom||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^A-Z0-9\s]/gi,'').trim().replace(/\s+/g,'_').toUpperCase();
+  if(!norm)return (typeEtab||'PHARMACIE')+'_INCONNU.xlsx';
+  const t=typeEtab||'PHARMACIE';
+  if(norm===t||norm.startsWith(t+'_')||norm.startsWith(t.replace('_','')+'_'))return norm+'.xlsx';
+  return t+'_'+norm+'.xlsx';
+}
+
+function _exportPharmRows(pharmNom,pharmRows){
+  if(typeof XLSX==='undefined'){toast('XLSX non chargé','error');return;}
+  // Sous-grouper par numero_facture
+  const byFacture=new Map();
+  pharmRows.forEach(r=>{
+    const k=(r.numero_facture||'').trim()||'__';
+    if(!byFacture.has(k))byFacture.set(k,[]);
+    byFacture.get(k).push(r);
+  });
+  const factGroups=[...byFacture.entries()];
+  const hasMultiple=factGroups.length>1;
+
+  const headers=['PHARMACIE','N° FACTURE','DATE','RÉF. BON','SALARIÉ','MATRICULE','PATIENT','TOTAL BON','TAUX','COMPTANT','CRÉDIT'];
+  const wsData=[headers];
+  const redRowIdxs=new Set();
+  const sepRowIdxs=new Set();
+
+  factGroups.forEach(([factNum,factRows],gIdx)=>{
+    if(hasMultiple){
+      const sepLabel='── FACTURE '+(gIdx+1)+(factNum!=='__'?' : '+factNum:'')+' ──';
+      const sepIdx=wsData.length;
+      sepRowIdxs.add(sepIdx);
+      if(gIdx>0)redRowIdxs.add(sepIdx);
+      wsData.push([sepLabel,...Array(10).fill('')]);
+    }
+    factRows.forEach(r=>{
+      const dataIdx=wsData.length;
+      if(hasMultiple&&gIdx>0)redRowIdxs.add(dataIdx);
+      wsData.push([
+        (r.pharmacie||pharmNom).toUpperCase(),
+        r.numero_facture||'',r.date||'',r.ref_bon||'',
+        r.salarie||'',r.matricule||'',
+        (r.patient||'').toUpperCase(),
+        parseFloat(r.total_bon)||0,
+        r.taux!=null&&r.taux!==''?parseFloat(r.taux):null,
+        parseFloat(r.comptant)||0,parseFloat(r.credit)||0
+      ]);
+    });
+  });
+
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=[{wch:30},{wch:16},{wch:12},{wch:12},{wch:22},{wch:12},{wch:22},{wch:12},{wch:8},{wch:12},{wch:12}];
+
+  i
