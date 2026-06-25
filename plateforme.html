@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AMAT-CI — Plateforme factures pharmaceutiques v3</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="/beneficiaires.js"></script>
+<script src="/beneficiaires.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -2046,4 +2046,4 @@ function previewFile(i){
   const cols=[{h:'RÉF. BON',k:'ref_bon'},{h:'DATE',k:'date'},{h:'SALARIÉ',k:'salarie'},{h:'MATRICULE',k:'matricule'},{h:'PATIENT',k:'patient'},{h:'TOTAL BON',k:'total_bon'},{h:'COMPTANT',k:'comptant'},{h:'CRÉDIT',k:'credit'}];
   document.getElementById('preview-thead').innerHTML=cols.map(c=>`<th>${c.h}</th>`).join('');
   document.getElementById('preview-tbody').innerHTML=entry.rows.map(r=>`<tr>${cols.map(c=>`<td>${r[c.k]||''}</td>`).join('')}</tr>`).join('');
-  documen
+  d
