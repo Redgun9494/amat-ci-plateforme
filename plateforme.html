@@ -258,6 +258,80 @@ body::before{
 .gp-pct-pop{animation:pctPop .55s cubic-bezier(.34,1.56,.64,1)!important}
 .gp-footer{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text3)}
 
+/* ─── DARK MODE ─────────────────────────────────────────────────────────────── */
+body.dark{background:#0F1F17!important;color:#D8EDE0}
+body.dark::before{background:radial-gradient(ellipse 70% 55% at 12% 8%,rgba(0,60,30,.4) 0%,transparent 65%),radial-gradient(ellipse 55% 75% at 88% 88%,rgba(0,80,40,.3) 0%,transparent 65%),linear-gradient(160deg,#0A1A0F 0%,#0D1F15 50%,#0B1C12 100%)!important}
+body.dark .topbar{background:linear-gradient(90deg,#0D1F15 60%,#111F16 100%)!important;border-bottom-color:#1E4030!important}
+body.dark .stepper{background:rgba(10,20,14,.95)!important;border-bottom-color:#1A3525!important}
+body.dark .step{color:#4A8060!important}
+body.dark .step.active{color:#4DEDA0!important;border-bottom-color:#2E7D50!important}
+body.dark .step.done{color:#3DAA45!important}
+body.dark .kpi-bar{background:#0D1F15!important;border-color:#1E4030!important}
+body.dark .kpi-card{background:#111C16!important;border-color:#1E4030!important}
+body.dark .card{background:#0E1D14!important;border-color:#1E4030!important;box-shadow:none!important}
+body.dark .card h2{color:#A8CEB8!important}
+body.dark table{background:transparent!important}
+body.dark thead th{background:#0A1A10!important;color:#78A888!important;border-color:#1E4030!important}
+body.dark tbody tr{border-color:#182E20!important}
+body.dark tbody tr:nth-child(even){background:rgba(20,50,30,.4)!important}
+body.dark tbody tr:hover{background:rgba(30,80,50,.3)!important}
+body.dark td,body.dark th{border-color:#1A3525!important}
+body.dark input,body.dark select,body.dark textarea{background:#0D1F15!important;color:#D8EDE0!important;border-color:#1E4030!important}
+body.dark input::placeholder{color:#3A5A48!important}
+body.dark .btn-outline{background:#0E1D14!important;color:#4DEDA0!important;border-color:#1E4030!important}
+body.dark .btn-primary{background:linear-gradient(135deg,#1E7A3A,#0D5C2E)!important}
+body.dark .fq-item{background:#0E1D14!important;border-color:#1E4030!important}
+body.dark .topbar-badge{background:#0D1F15!important;border-color:#1E4030!important;color:#A8CEB8!important}
+body.dark .modal{background:#0E1D14!important;border:1px solid #1E4030!important}
+body.dark .formats{background:#0A1A10!important}
+body.dark .fmt-badge{background:#111C16!important;border-color:#1E4030!important;color:#78A888!important}
+body.dark .filter-bar{background:#0E1D14!important;border-color:#1E4030!important}
+body.dark .section-header{background:#0A1A10!important;border-color:#1E4030!important}
+body.dark .preview-stat{background:#0A1A10!important;border-color:#1E4030!important}
+body.dark .gp-wrap{background:#0D1F15!important;border-color:#1E4030!important}
+body.dark .topbar-text h1{color:#A8CEB8!important}
+body.dark .topbar-text p{color:#4A8060!important}
+body.dark .kpi-lbl{color:#4A8060!important}
+body.dark .kpi-val{color:#4DEDA0!important}
+
+/* ─── BÉNÉFICIAIRES MODAL ─────────────────────────────────────────────────── */
+.bene-overlay{position:fixed;inset:0;background:rgba(0,20,10,.65);z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(5px)}
+.bene-modal{background:#fff;border-radius:18px;width:min(740px,96vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(14,92,46,.35);overflow:hidden}
+.bene-modal-head{padding:20px 26px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;background:linear-gradient(90deg,var(--pale2),#fff)}
+.bene-modal-head h2{flex:1;font-size:17px;font-weight:700;color:var(--g1)}
+.bene-modal-body{flex:1;overflow-y:auto;padding:20px 26px;display:flex;flex-direction:column;gap:16px}
+.bene-modal-foot{padding:14px 26px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;background:var(--pale2)}
+.bene-stats-row{display:flex;gap:12px}
+.bene-stat-box{flex:1;background:var(--pale);border:1px solid var(--border);border-radius:10px;padding:10px 16px;text-align:center}
+.bene-stat-box strong{display:block;font-size:22px;font-weight:800;color:var(--g1)}
+.bene-stat-box span{font-size:11px;color:var(--text3);font-weight:500}
+.bene-import-zone{border:2px dashed var(--border);border-radius:12px;padding:18px;background:var(--pale2)}
+.bene-import-zone label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px}
+.bene-import-zone .hint{font-size:11px;color:var(--text4);margin-bottom:10px}
+.bene-import-zone code{background:var(--pale);padding:1px 5px;border-radius:4px;font-size:11px}
+.bene-import-zone textarea{width:100%;height:100px;font-family:'Courier New',monospace;font-size:12px;border:1px solid var(--border);border-radius:8px;padding:10px;resize:vertical;background:#fff;color:var(--text1)}
+.bene-toolbar{display:flex;align-items:center;gap:10px}
+.bene-toolbar input{flex:1;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit}
+.bene-table-wrap{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.bene-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.bene-tbl th{background:var(--pale);padding:9px 14px;text-align:left;color:var(--text3);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)}
+.bene-tbl td{padding:8px 14px;border-bottom:1px solid var(--border2);vertical-align:middle}
+.bene-tbl tr:last-child td{border-bottom:none}
+.bene-tbl tr:hover td{background:var(--pale2)}
+.taux-pill{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;background:#E8F5EE;color:#0D5C2E;border:1px solid #C8E4D0}
+.taux-pill.none{background:#F5F5F5;color:#888;border-color:#DDD}
+body.dark .bene-modal{background:#0E1D14!important;border:1px solid #1E4030}
+body.dark .bene-modal-head{background:#0A1A10!important;border-color:#1E4030!important}
+body.dark .bene-modal-foot{background:#0A1A10!important;border-color:#1E4030!important}
+body.dark .bene-import-zone{background:#0A1A10!important;border-color:#1E4030!important}
+body.dark .bene-import-zone textarea{background:#0D1F15!important;color:#D8EDE0!important;border-color:#1E4030!important}
+body.dark .bene-stat-box{background:#0A1A10!important;border-color:#1E4030!important}
+body.dark .bene-table-wrap{border-color:#1E4030!important}
+body.dark .bene-tbl th{background:#0A1A10!important;color:#4A8060!important;border-color:#1E4030!important}
+body.dark .bene-tbl td{border-color:#182E20!important}
+body.dark .bene-tbl tr:hover td{background:rgba(30,80,50,.2)!important}
+body.dark .bene-toolbar input{background:#0D1F15!important;color:#D8EDE0!important;border-color:#1E4030!important}
+
 /* ─── BUTTONS ───────────────────────────────────────────────────────────────── */
 .btn{
   padding:10px 20px;border-radius:var(--r8);font-size:13px;
@@ -698,6 +772,14 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
     <span><i class="fa fa-download" style="margin-right:6px"></i>Exporter</span>
   </div>
   <div style="flex:1"></div>
+  <div class="step" onclick="openBeneModal()" style="border-bottom:none;color:#8AA898;gap:7px" title="Base bénéficiaires">
+    <i class="fa fa-users"></i>
+    <span>Bénéficiaires</span>
+    <span class="step-badge" id="badge-bene" style="display:none">0</span>
+  </div>
+  <button onclick="toggleDark()" title="Mode sombre / clair" style="display:flex;align-items:center;gap:7px;padding:14px 18px;background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;font-size:13px;font-weight:500;color:#8AA898;font-family:inherit;white-space:nowrap">
+    <i id="dark-icon" class="fa fa-moon"></i>
+  </button>
   <div class="step" id="step-config" onclick="go('config')" style="border-bottom:none;color:#8AA898">
     <i class="fa fa-cog"></i>
     <span>Configuration</span>
@@ -746,6 +828,49 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
       <button class="btn btn-danger" id="modal-confirm-btn">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL BÉNÉFICIAIRES ══════════════════════════════════════════════════ -->
+<div class="bene-overlay" id="bene-overlay" style="display:none" onclick="if(event.target===this)closeBeneModal()">
+  <div class="bene-modal">
+    <div class="bene-modal-head">
+      <i class="fa fa-users" style="color:var(--g2);font-size:22px"></i>
+      <h2>Base de données bénéficiaires</h2>
+      <button onclick="closeBeneModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text3);line-height:1">✕</button>
+    </div>
+    <div class="bene-modal-body">
+      <div class="bene-stats-row">
+        <div class="bene-stat-box"><strong id="bene-count">0</strong><span>Bénéficiaires enregistrés</span></div>
+        <div class="bene-stat-box"><strong id="bene-matched-count" style="color:var(--orange)">0</strong><span>Taux auto-remplis (session)</span></div>
+        <div class="bene-stat-box"><strong id="bene-coverage">0%</strong><span>Couverture estimée</span></div>
+      </div>
+      <div class="bene-import-zone">
+        <label>📥 Importer une liste CSV</label>
+        <p class="hint">Format : <code>MATRICULE;NOM COMPLET;TAUX</code> — une ligne par bénéficiaire, séparateur <code>;</code></p>
+        <p class="hint" style="margin-bottom:8px">Exemple : <code>1234ABC;KOUAME JEAN-PIERRE;80</code> &nbsp;|&nbsp; <code>5678DEF;DIALLO FATOU;100</code></p>
+        <textarea id="bene-csv-input" placeholder="Collez votre CSV ici...&#10;1234ABC;KOUAME JEAN;80&#10;5678DEF;DIALLO FATOU;100"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="importBeneText()" style="font-size:13px;padding:8px 18px"><i class="fa fa-upload"></i> Importer le texte</button>
+          <label class="btn btn-outline" style="font-size:13px;padding:8px 18px;cursor:pointer;margin:0"><i class="fa fa-file-alt"></i> Choisir un fichier CSV<input type="file" accept=".csv,.txt" onchange="importBeneFile(event)" style="display:none"></label>
+        </div>
+      </div>
+      <div class="bene-toolbar">
+        <input type="text" id="bene-search" placeholder="🔍 Rechercher par matricule ou nom..." oninput="renderBeneTable()">
+        <button class="btn btn-outline" onclick="exportBeneCSV()" title="Exporter CSV"><i class="fa fa-download"></i> Exporter</button>
+        <button onclick="clearBene()" style="background:none;border:1px solid #F5BABA;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;color:#B33;font-family:inherit"><i class="fa fa-trash"></i> Vider</button>
+      </div>
+      <div class="bene-table-wrap">
+        <table class="bene-tbl">
+          <thead><tr><th>#</th><th>Matricule</th><th>Nom complet</th><th>Taux</th><th></th></tr></thead>
+          <tbody id="bene-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bene-modal-foot">
+      <span style="font-size:12px;color:var(--text4);flex:1;align-self:center">Les taux sont appliqués automatiquement après chaque analyse</span>
+      <button class="btn btn-primary" onclick="closeBeneModal()">Fermer</button>
     </div>
   </div>
 </div>
@@ -1526,147 +1651,157 @@ function detectAndRemoveTotalRow(lignes){
   }
 }
 
-// ═══ EXTRACTION MULTI-FICHIERS ══════════════════════════════════════════════
-async function extractAll() {
+// ═══ EXTRACTION MULTI-FICHIERS (PARALLÈLE + RETRY) ══════════════════════════
+const ANALYSE_PROMPT=`Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire). Analyse cette facture médicale/pharmaceutique (image ou document PDF).
+
+RÈGLES STRICTES :
+1. "patient" : nom du BÉNÉFICIAIRE/PATIENT indiqué sur la facture. Sinon vide.
+2. "salarie" : nom de l'ADHÉRENT/SALARIÉ indiqué. Sinon vide.
+3. "matricule" : numéro matricule de l'agent (chiffres+lettres, sans espaces ni tirets ni points).
+4. "taux" : TOUJOURS null — ne jamais renseigner même si visible.
+5. "ref_bon" : numéro de bon de prise en charge — unique par ligne, ne pas dupliquer.
+6. NE PAS inclure les lignes de total/sous-total/cumul/montant total.
+7. "pharmacie" = NOM COMPLET du FOURNISSEUR en majuscules (ex: "CHU DE YOPOUGON", "PHARMACIE SAINTE BEATRICE"). JAMAIS "AMAT-CI", "DGTCP" ou "TRÉSOR".
+8. "type_etablissement" : "CHU" | "HOPITAL_GENERAL" | "CLINIQUE" | "PHARMACIE".
+9. Si plusieurs bénéficiaires sur la même facture, créer UNE LIGNE PAR BÉNÉFICIAIRE.
+10. Les montants (total_bon, comptant, credit) sont des nombres entiers en francs CFA.
+
+Retourne UNIQUEMENT un JSON valide, sans texte avant ni après :
+{
+  "pharmacie": "NOM EN MAJUSCULES",
+  "type_etablissement": "PHARMACIE",
+  "numero_facture": "",
+  "mois": "",
+  "annee": "2025",
+  "lignes": [{
+    "date": "JJ/MM/AAAA",
+    "ref_bon": "",
+    "salarie": "",
+    "matricule": "",
+    "patient": "",
+    "total_bon": 0,
+    "taux": null,
+    "comptant": 0,
+    "credit": 0
+  }]
+}
+Valeurs illisibles = chaîne vide ou 0. Noms TOUJOURS en MAJUSCULES.`;
+
+let _sessionBeneMatched=0;
+
+async function extractAll(){
   if(!fileQueue.length){toast('Aucun fichier chargé.','error');return;}
   const proxyUrl=(localStorage.getItem('amat_proxy')||window.location.origin).replace(/\/$/,'');
-
   const btn=document.getElementById('btnext');
   btn.disabled=true;
   showProgress(0,fileQueue.length,'Démarrage…');
 
-  let totalAdded=0;
-  let errors=0;
+  let totalAdded=0,errors=0,done=0;
+  _sessionBeneMatched=0;
 
-  for(let i=0;i<fileQueue.length;i++){
+  async function processOne(i){
     const entry=fileQueue[i];
     setQueueItemStatus(i,'processing');
-    showProgress(i,fileQueue.length,entry.name);
-    setStatus('loading','Analyse '+(i+1)+'/'+fileQueue.length+' — '+entry.name);
 
-    const prompt=`Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire). Analyse cette image de facture médicale/pharmaceutique.
+    let lastErr=null;
+    for(let attempt=0;attempt<3;attempt++){
+      try{
+        if(attempt>0){
+          setQueueItemStatus(i,'processing','Tentative '+(attempt+1)+'/3…');
+          await new Promise(r=>setTimeout(r,1200*attempt));
+        }
+        const resp=await fetch(proxyUrl+'/analyser',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            max_tokens:8096,
+            messages:[{role:'user',content:[
+              (entry.type==='application/pdf'
+                ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}}
+                :{type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}}),
+              {type:'text',text:ANALYSE_PROMPT}
+            ]}]
+          })
+        });
+        if(!resp.ok){
+          let em='Erreur '+resp.status;
+          try{const e=await resp.json();em=e.error?.message||e.error||em;}catch(_){}
+          throw new Error(em);
+        }
+        const data=await resp.json();
+        const text=(data.content||[]).map(x=>x.text||'').join('');
+        const clean=text.replace(/```json\n?|```/g,'').trim();
+        if(!clean) throw new Error('Réponse vide');
+        const parsed=JSON.parse(clean);
 
-RÈGLES IMPORTANTES :
-1. Champ "patient" : mets le nom du patient/bénéficiaire s'il est indiqué sur la facture. Sinon laisse vide.
-2. Champ "salarie" : mets le nom de l'adhérent/salarié s'il est indiqué. Sinon laisse vide.
-3. Champ "taux" : toujours laisser à null (vide), même si une valeur est visible.
-4. Les "ref_bon" doivent être uniques par ligne — ne pas dupliquer.
-5. NE PAS inclure les lignes de total/sous-total/cumul — seulement les lignes de détail.
-6. Le champ "pharmacie" est le NOM COMPLET DU FOURNISSEUR (ex: "CHU DE YOPOUGON", "PHARMACIE SAINTE BEATRICE", "CLINIQUE AVICENNE", "HÔPITAL GÉNÉRAL DE MARCORY"). Ne jamais mettre "AMAT-CI", "AMAT CI", "DGTCP", "Trésor", ni le nom de l'organisation bénéficiaire.
-7. Le champ "type_etablissement" indique le TYPE du fournisseur :
-   - "CHU" si c'est un Centre Hospitalier Universitaire
-   - "HOPITAL_GENERAL" si c'est un Hôpital Général (hors CHU)
-   - "CLINIQUE" si c'est une clinique privée
-   - "PHARMACIE" si c'est une pharmacie (par défaut si incertain)
+        let pharmaNom=(parsed.pharmacie||'').toUpperCase().trim();
+        if(/^AMAT[-\s]?CI$|^DGTCP$|^TR.?SOR/i.test(pharmaNom)) pharmaNom='';
+        const factureNum=parsed.numero_facture||'';
+        const TYPES=['CHU','HOPITAL_GENERAL','CLINIQUE','PHARMACIE'];
+        const typeEtab=(parsed.type_etablissement||'').toUpperCase().trim().replace(/\s+/g,'_');
+        entry.typeEtab=TYPES.includes(typeEtab)?typeEtab:'PHARMACIE';
 
-Retourne UNIQUEMENT un JSON valide (rien avant, rien après) :
-{
-  "pharmacie": "NOM COMPLET DU FOURNISSEUR EN MAJUSCULES",
-  "type_etablissement": "PHARMACIE",
-  "numero_facture": "numéro de facture détecté ou vide",
-  "mois": "mois détecté ou vide",
-  "annee": "année ou 2025",
-  "lignes": [
-    {
-      "date": "JJ/MM/AAAA",
-      "ref_bon": "",
-      "salarie": "adhérent/salarié ou vide",
-      "matricule": "",
-      "patient": "bénéficiaire/patient en MAJUSCULES ou vide",
-      "total_bon": 0,
-      "taux": null,
-      "comptant": 0,
-      "credit": 0
-    }
-  ]
-}
-Valeurs illisibles = chaîne vide ou 0. Noms TOUJOURS en MAJUSCULES.`;
+        const nouvelles=parsed.lignes||[];
+        nouvelles.forEach(r=>{r.pharmacie=pharmaNom||r.pharmacie||'';r.numero_facture=factureNum||r.numero_facture||'';});
+        detectAndRemoveTotalRow(nouvelles);
+        applyBusinessRules(nouvelles);
+        const nbTaux=applyBeneTaux(nouvelles); // ← auto-fill taux
+        _sessionBeneMatched+=nbTaux;
+        rows=[...rows,...nouvelles];
+        totalAdded+=nouvelles.length;
+        entry.lines=nouvelles.length;
+        sessionFactures++;
 
-    try{
-      const resp=await fetch(proxyUrl+'/analyser',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          max_tokens:8096,
-          messages:[{role:'user',content:[
-            (entry.type==='application/pdf' ? {type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}} : {type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}}),
-            {type:'text',text:prompt}
-          ]}]
-        })
-      });
-      if(!resp.ok){
-        let errMsg='Erreur serveur '+resp.status;
-        try{const e=await resp.json();errMsg=e.error?.message||e.error||errMsg;}catch(_){}
-        throw new Error(errMsg);
+        const badge=entry.typeEtab?` · ${entry.typeEtab.replace('_',' ')}`:'';
+        const bTag=nbTaux>0?` 👤${nbTaux}`:'';
+        setQueueItemStatus(i,'done',nouvelles.length+' ligne'+(nouvelles.length>1?'s':'')+badge+bTag);
+        return;
+      }catch(err){
+        lastErr=err;
+        console.error('[AMAT] Fichier',entry.name,'tentative',(attempt+1),':',err.message);
       }
-      const data=await resp.json();
-      const text=(data.content||[]).map(x=>x.text||'').join('');
-      const clean=text.replace(/```json\n?|```/g,'').trim();
-      if(!clean) throw new Error('Réponse vide');
-      let parsed;
-      try{parsed=JSON.parse(clean);}
-      catch(je){
-        console.error('Réponse non-JSON:',text.substring(0,200));
-        throw new Error('Réponse non analysable');
-      }
-
-      if(parsed.pharmacie&&!document.getElementById('f-pharma').value)
-        document.getElementById('f-pharma').value=parsed.pharmacie;
-      if(parsed.numero_facture&&!document.getElementById('f-facture').value)
-        document.getElementById('f-facture').value=parsed.numero_facture;
-      if(parsed.mois&&!document.getElementById('f-mois').value)
-        document.getElementById('f-mois').value=parsed.mois;
-      if(parsed.annee) document.getElementById('f-annee').value=parsed.annee;
-
-      const nouvelles=parsed.lignes||[];
-      let pharmaNom=(parsed.pharmacie||'').toUpperCase().trim();
-      // Ne jamais garder AMAT-CI comme nom de pharmacie
-      if(/^AMAT[-\s]?CI$|^DGTCP$|^TR.?SOR/i.test(pharmaNom)) pharmaNom='';
-      const factureNum=parsed.numero_facture||'';
-      // Type d'établissement détecté par l'IA
-      const TYPES_VALIDES=['CHU','HOPITAL_GENERAL','CLINIQUE','PHARMACIE'];
-      const typeEtab=(parsed.type_etablissement||'').toUpperCase().trim().replace(/\s+/g,'_');
-      entry.typeEtab=TYPES_VALIDES.includes(typeEtab)?typeEtab:'PHARMACIE';
-      nouvelles.forEach(r=>{
-        r.pharmacie=pharmaNom||r.pharmacie||'';
-        r.numero_facture=factureNum||r.numero_facture||'';
-      });
-      detectAndRemoveTotalRow(nouvelles);  // avant les règles métier (sinon TOTAL déplacé en patient)
-      applyBusinessRules(nouvelles);
-      rows=[...rows,...nouvelles];
-      totalAdded+=nouvelles.length;
-      entry.lines=nouvelles.length;
-      sessionFactures++;
-
-      const typeBadge=entry.typeEtab?` · ${entry.typeEtab.replace('_',' ')}`:'';
-      setQueueItemStatus(i,'done',nouvelles.length+' ligne'+(nouvelles.length>1?'s':'')+typeBadge);
-    }catch(err){
-      console.error('Erreur fichier',entry.name,':',err.message);
-      setQueueItemStatus(i,'error',err.message.substring(0,40));
-      errors++;
     }
-
-    if(i<fileQueue.length-1) await new Promise(r=>setTimeout(r,500));
+    setQueueItemStatus(i,'error',(lastErr?.message||'Erreur').substring(0,42));
+    errors++;
   }
 
-  updateGlobalCells();
-  renderTable();
-  autoSave();
-  updateDashboard();
-  updateSaisieNav();
+  // Pool de CONCURRENCY=3 en parallèle
+  const CONCURRENCY=3;
+  const pending=[...Array(fileQueue.length).keys()];
+  const running=new Set();
 
-  showProgress(fileQueue.length,fileQueue.length,'Terminé');
-  if(!errors) celebrateAnalysis();
-  else playSound('ding');
+  function launchNext(){
+    while(running.size<CONCURRENCY&&pending.length){
+      const i=pending.shift();
+      const p=processOne(i).finally(()=>{
+        done++;
+        showProgress(done,fileQueue.length,'Traitement en cours… '+done+'/'+fileQueue.length);
+        running.delete(p);
+        launchNext();
+      });
+      running.add(p);
+    }
+  }
+  launchNext();
+  await new Promise(resolve=>{
+    const check=()=>{if(running.size===0&&pending.length===0)resolve();else setTimeout(check,100);};
+    check();
+  });
+
+  updateGlobalCells();renderTable();autoSave();updateDashboard();updateSaisieNav();
+
+  showProgress(fileQueue.length,fileQueue.length,'Terminé ✓');
+  if(!errors) celebrateAnalysis(); else playSound('ding');
   setTimeout(hideProgress,3500);
 
   btn.disabled=false;
   btn.innerHTML='<i class="fa fa-magic"></i> Relancer l\'analyse';
 
-  let msg='✓ '+totalAdded+' ligne(s) extraite(s) depuis '+fileQueue.length+' facture(s).';
-  if(errors>0) msg+=' · '+errors+' fichier(s) en erreur.';
+  let msg='✓ '+totalAdded+' ligne(s) depuis '+fileQueue.length+' facture(s).';
+  if(_sessionBeneMatched>0) msg+=' · 👤 '+_sessionBeneMatched+' taux auto-rempli(s).';
+  if(errors>0) msg+=' · ⚠ '+errors+' fichier(s) en erreur.';
   setStatus(errors>0?'error':'info',msg);
-  toast(totalAdded+' lignes ajoutées','success');
+  toast(totalAdded+' lignes ajoutées'+(errors?' — '+errors+' erreur(s)':''),'success');
   clearTimeout(navTimer);
   navTimer=setTimeout(()=>go('saisie'),1500);
 }
@@ -2178,6 +2313,136 @@ function celebrateExport(nbFiles){
   const msg=nbFiles>1?'🎉 '+nbFiles+' fichiers exportés avec succès !':'🎉 Export réussi !';
   toast(msg,'success',4000);
 }
+
+
+// ═══ DARK MODE ═══════════════════════════════════════════════════════════════
+function toggleDark(){
+  const on=document.body.classList.toggle('dark');
+  localStorage.setItem('amat_dark',on?'1':'0');
+  const ic=document.getElementById('dark-icon');
+  if(ic) ic.className=on?'fa fa-sun':'fa fa-moon';
+}
+
+// ═══ BASE BÉNÉFICIAIRES ═══════════════════════════════════════════════════════
+function getBene(){try{return JSON.parse(localStorage.getItem('amat_bene')||'[]');}catch{return[];}}
+function saveBene(list){localStorage.setItem('amat_bene',JSON.stringify(list));_updateBeneBadge();}
+
+function _updateBeneBadge(){
+  const n=getBene().length;
+  const b=document.getElementById('badge-bene');
+  if(b){b.style.display=n?'inline-flex':'none';b.textContent=n;}
+  const c=document.getElementById('bene-count');if(c)c.textContent=n;
+  const cov=document.getElementById('bene-coverage');
+  if(cov){const tot=rows.length;cov.textContent=tot?Math.round(rows.filter(r=>r.taux!=null).length/tot*100)+'%':'—';}
+}
+
+function openBeneModal(){
+  document.getElementById('bene-overlay').style.display='flex';
+  renderBeneTable();_updateBeneBadge();
+  const mc=document.getElementById('bene-matched-count');
+  if(mc) mc.textContent=_sessionBeneMatched||0;
+}
+function closeBeneModal(){document.getElementById('bene-overlay').style.display='none';}
+
+function _parseBeneCSV(text){
+  return text.split('\n').map(l=>l.trim()).filter(Boolean)
+    .filter(l=>!/^matricule/i.test(l))
+    .map(l=>{
+      const p=l.split(/[;,\t]/);
+      const mat=(p[0]||'').trim().toUpperCase().replace(/[\s\-\.]/g,'');
+      const nom=(p[1]||'').trim().toUpperCase();
+      const taux=parseFloat((p[2]||'').trim().replace(',','.'));
+      return mat&&nom?{matricule:mat,nom,taux:isNaN(taux)?null:taux}:null;
+    }).filter(Boolean);
+}
+
+function importBeneText(){
+  const text=document.getElementById('bene-csv-input').value.trim();
+  if(!text){toast('Collez d\'abord votre CSV','error');return;}
+  _mergeBene(_parseBeneCSV(text));
+  document.getElementById('bene-csv-input').value='';
+}
+
+function importBeneFile(e){
+  const f=e.target.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{const parsed=_parseBeneCSV(ev.target.result);_mergeBene(parsed);};
+  reader.readAsText(f,'UTF-8');
+  e.target.value='';
+}
+
+function _mergeBene(parsed){
+  if(!parsed.length){toast('Aucun bénéficiaire valide trouvé','error');return;}
+  const existing=getBene();
+  const map=new Map(existing.map(b=>[b.matricule,b]));
+  parsed.forEach(b=>map.set(b.matricule,b));
+  const merged=[...map.values()];
+  saveBene(merged);renderBeneTable();
+  toast(parsed.length+' bénéficiaire(s) importé(s) · Total : '+merged.length,'success');
+}
+
+function clearBene(){
+  if(!confirm('Vider toute la base bénéficiaires ?')) return;
+  saveBene([]);renderBeneTable();toast('Base vidée','info');
+}
+
+function deleteBeneRow(mat){
+  saveBene(getBene().filter(b=>b.matricule!==mat));renderBeneTable();
+}
+
+function renderBeneTable(){
+  const list=getBene();
+  const q=(document.getElementById('bene-search')?.value||'').toLowerCase().trim();
+  const filtered=q?list.filter(b=>b.matricule.toLowerCase().includes(q)||b.nom.toLowerCase().includes(q)):list;
+  const tbody=document.getElementById('bene-tbody');if(!tbody)return;
+  if(!filtered.length){
+    tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;color:var(--text4);padding:24px;font-size:13px">${list.length?'Aucun résultat pour cette recherche':'Aucun bénéficiaire enregistré — importez un CSV ci-dessus'}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML=filtered.map((b,i)=>`<tr>
+    <td style="color:var(--text4);font-size:11px">${i+1}</td>
+    <td><code style="font-size:12px;background:var(--pale);padding:2px 6px;border-radius:4px">${b.matricule}</code></td>
+    <td style="font-weight:500">${b.nom}</td>
+    <td>${b.taux!=null?`<span class="taux-pill">${b.taux}%</span>`:'<span class="taux-pill none">—</span>'}</td>
+    <td><button onclick="deleteBeneRow('${b.matricule}')" style="background:none;border:none;color:#B33;cursor:pointer;font-size:15px;padding:2px 6px" title="Supprimer">✕</button></td>
+  </tr>`).join('');
+}
+
+function exportBeneCSV(){
+  const list=getBene();
+  if(!list.length){toast('Aucun bénéficiaire à exporter','error');return;}
+  const csv='MATRICULE;NOM;TAUX\n'+list.map(b=>`${b.matricule};${b.nom};${b.taux??''}`).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
+  a.download='beneficiaires_amat.csv';a.click();
+}
+
+// Auto-fill taux depuis la base bénéficiaires (appelé après applyBusinessRules)
+function applyBeneTaux(lignes){
+  const list=getBene();if(!list.length)return 0;
+  let matched=0;
+  lignes.forEach(r=>{
+    const mat=(r.matricule||'').toUpperCase().trim();
+    const pat=(r.patient||'').toUpperCase().trim();
+    let found=null;
+    if(mat) found=list.find(b=>b.matricule===mat);
+    if(!found&&pat) found=list.find(b=>b.nom&&(pat.includes(b.nom)||b.nom.includes(pat)));
+    if(found&&found.taux!=null){r.taux=found.taux;matched++;}
+  });
+  return matched;
+}
+
+// ═══ INIT ════════════════════════════════════════════════════════════════════
+(function init(){
+  // Dark mode
+  if(localStorage.getItem('amat_dark')==='1'){
+    document.body.classList.add('dark');
+    const ic=document.getElementById('dark-icon');
+    if(ic) ic.className='fa fa-sun';
+  }
+  // Badge bénéficiaires
+  _updateBeneBadge();
+})();
 
 </script>
 </body>
