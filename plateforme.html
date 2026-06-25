@@ -2062,9 +2062,6 @@ function _exportPharmRows(pharmNom,pharmRows){
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(wsData);
   ws['!cols']=[{wch:30},{wch:16},{wch:12},{wch:12},{wch:22},{wch:12},{wch:22},{wch:12},{wch:8},{wch:12},{wch:12}];
-  const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols']=[{wch:30},{wch:16},{wch:12},{wch:12},{wch:22},{wch:12},{wch:22},{wch:12},{wch:8},{wch:12},{wch:12}];
 
   // Style header vert
   for(let C=0;C<=10;C++){
@@ -2123,9 +2120,9 @@ function onBeneFile(e){
     reader.readAsText(file,'UTF-8');
   } else {
     reader.onload=ev=>{
-      const wb=XLSX.read(ev.target.result,{type:'array'});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const data=XLSX.utils.sheet_to_json(ws,{header:1});
+      const wb2=XLSX.read(ev.target.result,{type:'array'});
+      const ws2=wb2.Sheets[wb2.SheetNames[0]];
+      const data=XLSX.utils.sheet_to_json(ws2,{header:1});
       const list=data.slice(1).map(r=>({matricule:(r[0]||'').toString().trim().toUpperCase(),nom:(r[1]||'').toString().trim().toUpperCase(),taux:parseFloat(r[2])||null})).filter(b=>b.matricule||b.nom);
       const cur=getBene();saveBene([...cur,...list]);_updateBeneBadge();toast(list.length+' bénéficiaires importés','success');renderBeneTable();
     };
@@ -2155,10 +2152,6 @@ function toggleDark(){
   const ic=document.getElementById('dark-icon');if(ic)ic.className=dark?'fa fa-sun':'fa fa-moon';
 }
 
-// ═══ CHART ════════════════════════════════════════════════════════════════════
-let pharmaChart=null;
-const CHART_COLORS=['#1E7A3A','#E8690A','#1A4A8A','#7A1A6A','#0A5A7A','#7A6A0A','#4A0A8A','#8A4A0A','#0A7A5A','#6A0A2A'];
-
 // ═══ NAVIGATION ══════════════════════════════════════════════════════════════
 function go(t){
   document.querySelectorAll('.tab-content').forEach(el=>el.style.display='none');
@@ -2175,7 +2168,6 @@ function go(t){
     const ic=document.getElementById('dark-icon');if(ic)ic.className='fa fa-sun';
   }
   _updateBeneBadge();
-  // Charger la base bénéficiaires en arrière-plan sans bloquer le JS
   setTimeout(function(){
     var s=document.createElement('script');s.src='/beneficiaires.js';s.async=true;document.body.appendChild(s);
   },1000);
