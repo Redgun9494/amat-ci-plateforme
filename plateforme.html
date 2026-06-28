@@ -651,6 +651,70 @@ tfoot td{font-size:12px;font-weight:700;color:#0F4F2E;padding:10px 10px}
 .welcome-close-btn:hover{background:#F0F4F0;color:var(--g1)}
 body.dark .welcome-box{background:#0E1D14;border:1px solid #1E4030}
 body.dark .welcome-progress{background:#132818}
+
+/* ─── PRINT ─────────────────────────────────────────────────────────────────── */
+@media print{
+  .topbar,.stepper,.kpi-bar,.batch-actions,.table-toolbar,.sort-pill,.dup-banner,
+  .exp-option button,.bene-overlay,.modal-overlay,.welcome-overlay,
+  #toast-container,body::before,#fq-container,.global-progress-wrap,
+  .step-sep,.topbar-right,#invoice-nav,.card-title .btn{display:none!important}
+  .screen{display:none!important}
+  #screen-saisie{display:block!important;padding:0}
+  table{width:100%;border-collapse:collapse;font-size:9pt}
+  th,td{border:1px solid #999;padding:3px 6px;word-break:break-word}
+  .print-header{display:block!important;text-align:center;margin-bottom:16px}
+  .print-header h2{font-size:16pt;color:#0D5C2E;margin-bottom:4px}
+  .print-header p{font-size:9pt;color:#555;margin-bottom:12px}
+  .main,.card{box-shadow:none;border:none;padding:0;background:transparent}
+  .tbl-wrap{overflow:visible;max-height:none}
+  .row-num{display:none}
+  input{border:none!important;background:transparent!important;padding:0!important;width:auto!important;height:auto!important}
+}
+.print-header{display:none}
+
+/* ─── HISTORIQUE SESSIONS ───────────────────────────────────────────────────── */
+.history-empty{text-align:center;color:var(--text4);padding:20px;font-size:13px}
+.history-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;background:var(--pale2);border:1px solid var(--border2);margin-bottom:6px;font-size:12px;transition:background .2s}
+.history-item:hover{background:var(--pale)}
+.history-item .hi-date{color:var(--text3);width:130px;flex-shrink:0;font-size:11px}
+.history-item .hi-info{flex:1;color:var(--text2);font-weight:500}
+.history-item .hi-total{font-weight:700;color:var(--g1);white-space:nowrap}
+
+/* ─── ALERTE MATRICULE INCONNU ──────────────────────────────────────────────── */
+.alert-matricule{background:#FFF8E0;border:1px solid #F5C842;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:12px;display:none;gap:8px;align-items:flex-start;line-height:1.5}
+.alert-matricule.show{display:flex}
+.alert-matricule .am-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.alert-matricule .am-text{flex:1}
+.alert-matricule .am-list{font-family:monospace;font-size:11px;color:#8A6A00;margin-top:4px;word-break:break-all}
+body.dark .alert-matricule{background:#2A1A00;border-color:#8A6A00;color:#DDC}
+
+/* ─── RECHERCHE GLOBALE ─────────────────────────────────────────────────────── */
+.gsearch-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:8000;display:none;align-items:flex-start;justify-content:center;padding-top:80px;backdrop-filter:blur(4px)}
+.gsearch-overlay.open{display:flex}
+.gsearch-box{background:#fff;border-radius:14px;width:600px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;animation:slideUp .2s ease}
+.gsearch-iw{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border2)}
+.gsearch-iw i{color:var(--text3);font-size:16px}
+.gsearch-iw input{flex:1;border:none;outline:none;font-size:16px;color:var(--text1);background:transparent;font-family:inherit}
+.gsearch-iw kbd{font-size:9px;background:#E0ECEA;border:1px solid var(--border);border-radius:3px;padding:1px 4px;color:var(--text3)}
+.gsearch-results{max-height:380px;overflow-y:auto;padding:6px}
+.gsr{padding:9px 12px;border-radius:6px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border2);transition:background .15s}
+.gsr:hover,.gsr.active{background:var(--pale2)}
+.gsr:last-child{border-bottom:none}
+.gsr .gr-pharma{font-weight:700;color:var(--g1)}
+.gsr .gr-detail{color:var(--text3);font-size:11px;margin-top:2px}
+.gsr mark{background:#FFF0A0;border-radius:2px;padding:0 2px}
+.gsearch-empty{text-align:center;color:var(--text4);padding:24px;font-size:13px}
+.gsearch-footer{padding:8px 16px;font-size:11px;color:var(--text4);border-top:1px solid var(--border2);display:flex;justify-content:space-between}
+body.dark .gsearch-box{background:#0E1D14;border:1px solid #1E4030}
+body.dark .gsr:hover,body.dark .gsr.active{background:#132818}
+body.dark .gsearch-footer{border-top-color:#1E4030}
+
+/* ─── GRAPHIQUE MENSUEL ─────────────────────────────────────────────────────── */
+.monthly-card{background:#fff;border:1px solid var(--border);border-radius:var(--r12);padding:16px 20px;margin-bottom:16px;display:none}
+.monthly-card .card-title{font-size:13px;font-weight:700;color:var(--text1);display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.monthly-chart-wrap{position:relative;height:180px}
+body.dark .monthly-card{background:#0E1D14;border-color:#1E4030}
+body.dark .history-item{background:#132818;border-color:#1E4030}
 </style>
 </head>
 <body>
@@ -705,6 +769,10 @@ body.dark .welcome-progress{background:#132818}
   </div>
   <div class="topbar-right">
     <div class="topbar-time" id="topbar-time"></div>
+    <button onclick="openGSearch()" title="Recherche globale (Ctrl+K)" style="background:var(--pale);border:1px solid var(--border);color:var(--g1);padding:5px 12px;border-radius:20px;font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;font-family:inherit;transition:all .2s">
+      <i class="fa fa-search"></i> Recherche
+      <kbd style="font-size:9px;background:#E0ECEA;border:1px solid var(--border);border-radius:3px;padding:1px 4px;color:var(--text3)">Ctrl+K</kbd>
+    </button>
     <div class="topbar-badge" id="server-badge" style="display:none">
       <div class="dot"></div>
       <span>Serveur connecté</span>
@@ -924,6 +992,15 @@ body.dark .welcome-progress{background:#132818}
       </div>
     </div>
 
+    <!-- ─── ALERTE MATRICULE INCONNU ── -->
+    <div class="alert-matricule" id="alert-matricule">
+      <div class="am-icon">⚠️</div>
+      <div class="am-text">
+        <strong>Matricules non reconnus dans la base :</strong>
+        <div class="am-list" id="alert-matricule-list"></div>
+      </div>
+      <button onclick="document.getElementById('alert-matricule').classList.remove('show')" style="background:none;border:none;cursor:pointer;color:#8A6A00;font-size:16px;line-height:1;align-self:flex-start;padding:0 4px">✕</button>
+    </div>
     <div class="status-box" id="st-upload">
       <div class="spinner" id="spin-upload" style="display:none"></div>
       <span id="st-text"></span>
@@ -1083,6 +1160,11 @@ body.dark .welcome-progress{background:#132818}
       </div>
     </div>
 
+
+    <div class="monthly-card" id="monthly-card">
+      <div class="card-title"><i class="fa fa-chart-bar" style="color:var(--g2)"></i> Répartition mensuelle des dépenses</div>
+      <div class="monthly-chart-wrap"><canvas id="monthly-chart"></canvas></div>
+    </div>
     <div class="card">
       <div class="card-title"><i class="fa fa-download"></i> Télécharger</div>
       <div class="exp-option">
@@ -1104,6 +1186,16 @@ body.dark .welcome-progress{background:#132818}
           </div>
         </div>
         <button class="btn btn-orange" onclick="exportTxt()"><i class="fa fa-download"></i> Télécharger</button>
+      </div>
+      <div class="exp-option">
+        <div class="exp-left">
+          <span class="exp-icon">🖨️</span>
+          <div class="exp-info">
+            <strong>Impression / PDF</strong>
+            <span>Imprimer le tableau ou sauvegarder en PDF via la boîte d'impression du navigateur</span>
+          </div>
+        </div>
+        <button class="btn btn-outline" onclick="exportPDF()"><i class="fa fa-print"></i> Imprimer</button>
       </div>
       <div id="s-groupes" style="display:none;background:#F0FAF4;border:1px solid #B0D8BC;border-radius:10px;padding:12px 16px;margin-bottom:4px"></div>
       <div class="note">
@@ -1143,6 +1235,13 @@ body.dark .welcome-progress{background:#132818}
           <label>Taux de remboursement par défaut (%)</label>
           <input type="number" id="pref-taux" value="80" min="0" max="100">
         </div>
+      </div>
+    </div>
+    <div class="card" id="history-card">
+      <div class="card-title"><i class="fa fa-history"></i> Historique des sessions</div>
+      <div id="history-list"><div class="history-empty"><i class="fa fa-inbox" style="margin-right:6px"></i>Aucune session exportée</div></div>
+      <div style="margin-top:10px;text-align:right">
+        <button class="btn btn-outline btn-sm" onclick="clearHistory()" style="color:#B33;border-color:#F5BABA;font-size:12px;padding:6px 14px"><i class="fa fa-trash"></i> Effacer l'historique</button>
       </div>
     </div>
     <div class="card" style="background:linear-gradient(135deg,#F4FAF6,#EEF6F1);border-color:#A8C9B5">
@@ -1201,7 +1300,7 @@ function go(t) {
     if(e) { e.classList.add('done'); e.querySelector('.step-num').innerHTML='<i class="fa fa-check" style="font-size:10px"></i>'; }
   });
   if(t==='upload') resetFile();
-  if(t==='export') { refreshExportStats(); renderPharmaChart(); }
+  if(t==='export') { refreshExportStats(); renderPharmaChart(); renderMonthlyChart(); }
   if(t==='saisie') updateSaisieNav();
 }
 
@@ -1345,6 +1444,16 @@ function updateDashboard(){
   animateKPI('kpi-lignes', rows.length, v => String(v));
   animateKPI('kpi-total', total, v => v.toLocaleString('fr-FR') + ' F');
   animateKPI('kpi-amat', credit, v => v.toLocaleString('fr-FR') + ' F');
+  // Stats bénéficiaires dans la modale
+  const withTaux=rows.filter(r=>!r.is_total&&r.taux!=null).length;
+  const total_rows=rows.filter(r=>!r.is_total).length;
+  const mc=document.getElementById('bene-matched-count');
+  if(mc)mc.textContent=_sessionBeneMatched||0;
+  const cov=document.getElementById('bene-coverage');
+  if(cov&&total_rows>0)cov.textContent=Math.round(withTaux/total_rows*100)+'%';
+  // Badge rows stepper
+  const br=document.getElementById('badge-rows');
+  if(br){br.textContent=rows.length;br.style.display=rows.length?'inline-block':'none';}
 }
 
 // ═══ SORT TABLE ═══════════════════════════════════════════════════════════════
@@ -1571,8 +1680,68 @@ function setQueueItemStatus(i, status, extra){
   st.textContent=labels[status];
   if(status==='processing'&&prog){prog.style.display='';setTimeout(()=>{if(bar)bar.style.width='85%';},200);}
   if(status==='done'&&bar){bar.style.width='100%';}
+  // Bouton Réessayer pour les fichiers en erreur
+  let retryBtn=document.getElementById('fq-retry-'+i);
+  if(status==='error'){
+    if(!retryBtn){
+      retryBtn=document.createElement('button');
+      retryBtn.id='fq-retry-'+i;
+      retryBtn.onclick=()=>retryOne(i);
+      retryBtn.title='Réessayer ce fichier';
+      retryBtn.style.cssText='background:#E8690A;color:#fff;border:none;border-radius:4px;padding:3px 9px;font-size:11px;cursor:pointer;margin-left:6px;font-family:inherit';
+      retryBtn.innerHTML='<i class="fa fa-redo"></i> Réessayer';
+      if(st.parentNode)st.parentNode.appendChild(retryBtn);
+    }
+    retryBtn.style.display='inline-flex';
+  } else if(retryBtn){
+    retryBtn.style.display='none';
+  }
 }
 
+
+// ─── RETRY UN FICHIER SPÉCIFIQUE ─────────────────────────────────────────────
+async function retryOne(i){
+  const entry=fileQueue[i];if(!entry)return;
+  if(!requireTypeFact())return;
+  const proxyUrl=(localStorage.getItem('amat_proxy')||window.location.origin).replace(/\/$/,'');
+  setQueueItemStatus(i,'processing','Nouvelle tentative…');
+  try{
+    const resp=await fetch(proxyUrl+'/analyser',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({max_tokens:8096,messages:[{role:'user',content:[
+        (entry.type==='application/pdf'
+          ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}}
+          :{type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}}),
+        {type:'text',text:ANALYSE_PROMPT}
+      ]}]})
+    });
+    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'Erreur '+resp.status);}
+    const data=await resp.json();
+    const text=(data.content||[]).map(x=>x.text||'').join('');
+    const clean=text.replace(/```json\n?|```/g,'').trim();
+    if(!clean)throw new Error('Réponse vide');
+    const parsed=JSON.parse(clean);
+    let pharmaNom=(parsed.pharmacie||'').toUpperCase().trim();
+    if(/^AMAT[-\s]?CI$|^DGTCP$|^TR.?SOR/i.test(pharmaNom))pharmaNom='';
+    const nouvelles=parsed.lignes||[];
+    nouvelles.forEach(r=>{r.pharmacie=pharmaNom||r.pharmacie||'';r.numero_facture=parsed.numero_facture||r.numero_facture||'';});
+    detectAndRemoveTotalRow(nouvelles);applyBusinessRules(nouvelles);
+    if(currentTypeFact)nouvelles.forEach(r=>r._typeFacture=currentTypeFact);
+    nouvelles.forEach(r=>r._queueIdx=i);
+    const beneRes=applyBeneTaux(nouvelles);
+    _sessionBeneMatched+=beneRes.matched;
+    rows=rows.filter(r=>r._queueIdx!==i);
+    rows=[...rows,...nouvelles];
+    entry.lines=nouvelles.length;sessionFactures++;
+    const badge=entry.typeEtab?(' · '+(entry.typeEtab.replace('_',' '))):'';
+    setQueueItemStatus(i,'done',nouvelles.length+' ligne(s)'+badge+' · Réessai OK');
+    renderTable();updateDashboard();updateSaisieNav();autoSave();
+    toast('✓ Réanalysé : '+nouvelles.length+' ligne(s)','success');
+  }catch(err){
+    setQueueItemStatus(i,'error',(err.message||'Erreur').substring(0,48));
+    toast('Échec réessai : '+err.message,'error');
+  }
+}
 function resetFile() {
   imgData=null; imgType=null; fileQueue=[];
   document.getElementById('dz').style.display='';
@@ -1725,6 +1894,15 @@ async function extractAll(){
         const TYPES=['CHU','HOPITAL_GENERAL','CLINIQUE','PHARMACIE'];
         const typeEtab=(parsed.type_etablissement||'').toUpperCase().trim().replace(/\s+/g,'_');
         entry.typeEtab=TYPES.includes(typeEtab)?typeEtab:'PHARMACIE';
+        // ─── Auto-détection type de facture si non sélectionné ───────────────
+        if(!currentTypeFact){
+          const aiT=(parsed.type_etablissement||'').toLowerCase();
+          if(/pharmacie/.test(aiT)) selectTypeFact('pharmacie');
+          else if(/chu|hopital|clinique|centre_sante|centre\s+de\s+sante/.test(aiT)) selectTypeFact('publique');
+          else if(/consultation/.test(aiT)) selectTypeFact('consultation');
+          else selectTypeFact('pharmacie');
+          toast('✨ Type auto-détecté : '+currentTypeFact,'info',2200);
+        }
 
         const nouvelles=parsed.lignes||[];
         nouvelles.forEach(r=>{r.pharmacie=pharmaNom||r.pharmacie||'';r.numero_facture=factureNum||r.numero_facture||'';});
@@ -1732,8 +1910,19 @@ async function extractAll(){
         applyBusinessRules(nouvelles);
         // Tagger chaque ligne avec le type de facture courant
         if(currentTypeFact) nouvelles.forEach(r=>r._typeFacture=currentTypeFact);
-        const nbTaux=applyBeneTaux(nouvelles); // ← auto-fill taux
+        const beneRes=applyBeneTaux(nouvelles); // ← auto-fill taux
+        const nbTaux=beneRes.matched;
         _sessionBeneMatched+=nbTaux;
+        // Alerte matricules non reconnus
+        if(beneRes.unknown.length){
+          const al=document.getElementById('alert-matricule');
+          const lst=document.getElementById('alert-matricule-list');
+          if(al&&lst){
+            al.classList.add('show');
+            const prev=lst.textContent.trim()?lst.textContent+', ':'';
+            lst.textContent=prev+beneRes.unknown.slice(0,10).join(', ')+(beneRes.unknown.length>10?' …':'');
+          }
+        }
         rows=[...rows,...nouvelles];
         totalAdded+=nouvelles.length;
         entry.lines=nouvelles.length;
@@ -1997,13 +2186,28 @@ function closePreview(e){
 }
 
 // ═══ GROUPEMENT PAR PHARMACIE ═════════════════════════════════════════════════
+function _normPharmaKey(nom){
+  // Normalise pour fusion intelligente: retire préfixes communs
+  return (nom||'INCONNUE').toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\b(PHARMACIE|PHCIE|PHARM|PHC|PHR|DISPENSAIRE)\b/g,'')
+    .replace(/\b(DE LA|DE L|DU|DE|LA|LES?|L\'|L)\b/g,' ')
+    .replace(/[^A-Z0-9]/g,' ').replace(/\s+/g,' ').trim()
+    ||'INCONNUE';
+}
 function groupByPharma(){
-  const groups={};
+  const groups={};   // normalizedKey → {nom, lignes}
+  const bestNom={};  // normalizedKey → shortest/best display name
   rows.filter(r=>!r.is_total).forEach(r=>{
-    const k=(r.pharmacie||'INCONNUE').toUpperCase().trim();
-    if(!groups[k])groups[k]={nom:k,lignes:[]};
-    groups[k].lignes.push(r);
+    const raw=(r.pharmacie||'INCONNUE').toUpperCase().trim();
+    const nk=_normPharmaKey(raw);
+    if(!groups[nk]){groups[nk]={nom:raw,lignes:[]};bestNom[nk]=raw;}
+    // Garder le nom d'affichage le plus long (plus informatif) qui commence par "PHARMACIE"
+    if(raw.startsWith('PHARMACIE')&&!bestNom[nk].startsWith('PHARMACIE'))bestNom[nk]=raw;
+    else if(raw.length>bestNom[nk].length&&!bestNom[nk].startsWith('PHARMACIE'))bestNom[nk]=raw;
+    groups[nk].lignes.push(r);
   });
+  Object.keys(groups).forEach(k=>groups[k].nom=bestNom[k]);
   return Object.values(groups).sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
 }
 
@@ -2097,16 +2301,15 @@ function _exportPharmRows(pharmNom,pharmRows){
 
 function exporterExcel(){
   if(!rows.length){toast('Aucune donnée à exporter','error');return;}
-  const byPharma=groupByPharma();
-  const pharmas=Object.keys(byPharma);
-  if(pharmas.length===1){_exportPharmRows(pharmas[0],byPharma[pharmas[0]]);}
-  else{pharmas.forEach(p=>_exportPharmRows(p,byPharma[p]));toast(pharmas.length+' fichiers exportés','success');}
+  const groups=groupByPharma();
+  if(groups.length===1){_exportPharmRows(groups[0].nom,groups[0].lignes);}
+  else{groups.forEach(g=>_exportPharmRows(g.nom,g.lignes));toast(groups.length+' fichier(s) exporté(s)','success');}
 }
 
 function exporterTXT(){
   if(!rows.length){toast('Aucune donnée à exporter','error');return;}
-  const byPharma=groupByPharma();
-  Object.entries(byPharma).forEach(([pharmNom,pharmRows])=>{
+  const groups=groupByPharma();
+  groups.forEach(({nom:pharmNom,lignes:pharmRows})=>{
     let txt='';
     const byFacture=new Map();
     pharmRows.forEach(r=>{const k=(r.numero_facture||'').trim()||'__';if(!byFacture.has(k))byFacture.set(k,[]);byFacture.get(k).push(r);});
@@ -2123,6 +2326,93 @@ function exporterTXT(){
   toast('Export TXT effectué','success');
 }
 
+
+// ═══ RECHERCHE GLOBALE ════════════════════════════════════════════════════════
+let _gsearchIdx=-1;
+function openGSearch(){
+  const ov=document.getElementById('gsearch-overlay');if(!ov)return;
+  ov.classList.add('open');
+  const inp=document.getElementById('gsearch-input');
+  if(inp){inp.value='';inp.focus();}
+  const res=document.getElementById('gsearch-results');
+  if(res)res.innerHTML='<div class="gsearch-empty"><i class="fa fa-search" style="margin-right:6px"></i>Tapez pour rechercher dans les données…</div>';
+  const cnt=document.getElementById('gsearch-count');if(cnt)cnt.textContent='';
+  _gsearchIdx=-1;
+}
+function closeGSearch(){
+  const ov=document.getElementById('gsearch-overlay');if(ov)ov.classList.remove('open');
+}
+function _hlText(str,q){
+  if(!q||!str)return str||'';
+  const re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+  return String(str).replace(re,'<mark>$1</mark>');
+}
+function doGSearch(){
+  const inp=document.getElementById('gsearch-input');if(!inp)return;
+  const q=(inp.value||'').trim().toUpperCase();
+  const res=document.getElementById('gsearch-results');
+  const cnt=document.getElementById('gsearch-count');
+  if(!res)return;
+  _gsearchIdx=-1;
+  if(!q||q.length<2){
+    res.innerHTML='<div class="gsearch-empty"><i class="fa fa-search" style="margin-right:6px"></i>Tapez pour rechercher dans les données…</div>';
+    if(cnt)cnt.textContent='';return;
+  }
+  if(!rows.length){res.innerHTML='<div class="gsearch-empty">Aucune donnée chargée. Analysez d\'abord des factures.</div>';return;}
+  const ql=q.toLowerCase();
+  const hits=[];
+  rows.forEach((r,i)=>{
+    if((r.pharmacie||'').toUpperCase().includes(q)||
+       (r.matricule||'').toUpperCase().includes(q)||
+       (r.patient||'').toUpperCase().includes(q)||
+       (r.salarie||'').toUpperCase().includes(q)||
+       (r.ref_bon||'').toUpperCase().includes(q)||
+       (r.numero_facture||'').toUpperCase().includes(q))hits.push({r,i});
+  });
+  if(cnt)cnt.textContent=hits.length+' résultat'+(hits.length!==1?'s':'');
+  if(!hits.length){res.innerHTML='<div class="gsearch-empty">Aucun résultat pour «'+q+'»</div>';return;}
+  const fmt=v=>Math.round(parseFloat(v)||0).toLocaleString('fr-FR')+' F';
+  res.innerHTML=hits.slice(0,50).map(({r,i})=>`
+    <div class="gsr" data-idx="${i}" onclick="gsearchGo(${i})">
+      <div class="gr-pharma">${_hlText(esc(r.pharmacie||'INCONNUE'),ql)}</div>
+      <div class="gr-detail">
+        ${_hlText(esc(r.matricule||'—'),ql)} &nbsp;·&nbsp;
+        ${_hlText(esc((r.patient||'—').toUpperCase()),ql)} &nbsp;·&nbsp;
+        Bon : ${_hlText(esc(r.ref_bon||'—'),ql)} &nbsp;·&nbsp;
+        Total : ${fmt(r.total_bon)} &nbsp;·&nbsp; Crédit : ${fmt(r.credit)}
+      </div>
+    </div>`).join('');
+}
+function gsearchGo(rowIdx){
+  closeGSearch();
+  saisieFilter=null;
+  go('saisie');
+  setTimeout(()=>{
+    renderTable();
+    const tb=document.getElementById('tbody');if(!tb)return;
+    const trs=tb.querySelectorAll('tr');
+    if(trs[rowIdx]){
+      trs[rowIdx].scrollIntoView({behavior:'smooth',block:'center'});
+      trs[rowIdx].style.transition='background .3s';
+      trs[rowIdx].style.background='#FFF0A0';
+      setTimeout(()=>{if(trs[rowIdx])trs[rowIdx].style.background='';},2200);
+    }
+  },180);
+}
+function gsearchKey(e){
+  if(e.key==='Escape'){closeGSearch();return;}
+  const items=document.querySelectorAll('#gsearch-results .gsr');
+  if(!items.length)return;
+  if(e.key==='ArrowDown'){e.preventDefault();_gsearchIdx=Math.min(_gsearchIdx+1,items.length-1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();_gsearchIdx=Math.max(_gsearchIdx-1,0);}
+  else if(e.key==='Enter'&&_gsearchIdx>=0){
+    const el=items[_gsearchIdx];
+    if(el)gsearchGo(parseInt(el.dataset.idx));
+    return;
+  }
+  items.forEach((el,i)=>el.classList.toggle('active',i===_gsearchIdx));
+  if(items[_gsearchIdx])items[_gsearchIdx].scrollIntoView({block:'nearest'});
+}
 // ═══ BÉNÉFICIAIRES (liste locale) ════════════════════════════════════════════
 function getBene(){try{return JSON.parse(localStorage.getItem('amat_bene')||'[]');}catch(e){return[];}}
 function saveBene(list){try{localStorage.setItem('amat_bene',JSON.stringify(list));}catch(e){}}
@@ -2146,8 +2436,23 @@ function onBeneFile(e){
       const wb2=XLSX.read(ev.target.result,{type:'array'});
       const ws2=wb2.Sheets[wb2.SheetNames[0]];
       const data=XLSX.utils.sheet_to_json(ws2,{header:1});
-      const list=data.slice(1).map(r=>({matricule:(r[0]||'').toString().trim().toUpperCase(),nom:(r[1]||'').toString().trim().toUpperCase(),taux:parseFloat(r[2])||null})).filter(b=>b.matricule||b.nom);
-      const cur=getBene();saveBene([...cur,...list]);_updateBeneBadge();toast(list.length+' bénéficiaires importés','success');renderBeneTable();
+      if(!data.length){toast('Fichier Excel vide','error');return;}
+      // Auto-détection des colonnes par leurs en-têtes
+      const heads=(data[0]||[]).map(h=>(h||'').toString().toUpperCase().trim());
+      const fc=(kws)=>{for(const k of kws){const i=heads.findIndex(h=>h.includes(k));if(i>=0)return i;}return -1;};
+      const cMat=fc(['MATRI','CODE_BEN','CODE BEN','CODEBN','CODEBEN','AGENT','IMMAT']);
+      const cNom=fc(['NOM_BEN','NOM BEN','NOMBEN','NOM COMPLET','NOM_COMPLET','PRENOM','NOM','BENEFI','NAME','SALARIE']);
+      const cTx =fc(['TAUX_COUV','TAUX COUV','TAUX','COUV','RATE','REMB','POURCENTAGE']);
+      const list=data.slice(1).filter(r=>r&&r.length>0).map(r=>{
+        const mat=(cMat>=0?r[cMat]:r[0]||'').toString().trim().toUpperCase();
+        const nom=(cNom>=0?r[cNom]:r[1]||'').toString().trim().toUpperCase();
+        const tv=cTx>=0?r[cTx]:r[2];
+        const taux=tv!==null&&tv!==undefined&&tv!==''?parseFloat(tv):null;
+        return{matricule:mat,nom:nom,taux:isNaN(taux)?null:taux};
+      }).filter(b=>b.matricule||b.nom);
+      const cur=getBene();saveBene([...cur,...list]);_updateBeneBadge();
+      const colInfo=(cMat>=0?'col.'+cMat:'col.0')+' · '+(cNom>=0?'col.'+cNom:'col.1');
+      toast(list.length+' bénéficiaires importés (colonnes auto-détectées)','success');renderBeneTable();
     };
     reader.readAsArrayBuffer(file);
   }
@@ -2209,7 +2514,7 @@ function applyBeneTaux(lignes){
     }
     db._ni=ni;
   }
-  var matched=0;
+  var matched=0;var unknown=[];
   for(var ri=0;ri<lignes.length;ri++){
     var r=lignes[ri];
     if(r.taux!=null)continue;
@@ -2233,18 +2538,91 @@ function applyBeneTaux(lignes){
       if(b&&b.taux!=null)taux=b.taux;
     }
     if(taux!=null){r.taux=taux;if(nom&&!r.patient)r.patient=nom;matched++;}
+    else if(mat&&mat.length>=3&&!r.is_total){unknown.push(mat);}
   }
-  return matched;
+  return{matched:matched,unknown:[...new Set(unknown)]};
 }
 
+
+
+// ═══ GRAPHIQUE MENSUEL ════════════════════════════════════════════════════════
+let monthlyChart=null;
+const MOIS_LABELS=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
+function renderMonthlyChart(){
+  const card=document.getElementById('monthly-card');if(!card)return;
+  const lignes=rows.filter(r=>!r.is_total);
+  const byMonth={};
+  lignes.forEach(r=>{
+    const d=(r.date||'').trim();
+    if(!d)return;
+    let m=-1,yr=0;
+    let mt=d.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+    if(mt){m=parseInt(mt[2])-1;yr=parseInt(mt[3]);}
+    else{mt=d.match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);if(mt){m=parseInt(mt[2])-1;yr=parseInt(mt[1]);}}
+    if(m<0||m>11)return;
+    const k=yr+'-'+String(m+1).padStart(2,'0');
+    if(!byMonth[k])byMonth[k]={label:MOIS_LABELS[m]+' '+yr,total:0,credit:0};
+    byMonth[k].total+=(parseFloat(r.total_bon)||0);
+    byMonth[k].credit+=(parseFloat(r.credit)||0);
+  });
+  const keys=Object.keys(byMonth).sort();
+  if(keys.length<1){card.style.display='none';return;}
+  card.style.display='block';
+  const labels=keys.map(k=>byMonth[k].label);
+  const totals=keys.map(k=>Math.round(byMonth[k].total));
+  const credits=keys.map(k=>Math.round(byMonth[k].credit));
+  const ctx=document.getElementById('monthly-chart');if(!ctx||typeof Chart==='undefined')return;
+  if(monthlyChart){monthlyChart.destroy();monthlyChart=null;}
+  monthlyChart=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Total factures',data:totals,backgroundColor:'rgba(30,122,58,.75)',borderRadius:4,borderSkipped:false},
+      {label:'Part AMAT-CI',data:credits,backgroundColor:'rgba(232,105,10,.75)',borderRadius:4,borderSkipped:false}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:12,padding:12}}},
+      scales:{
+        y:{ticks:{callback:v=>Math.round(v/1000)+'k',font:{size:10}},grid:{color:'rgba(0,0,0,.06)'}},
+        x:{ticks:{font:{size:10}},grid:{display:false}}
+      }
+    }
+  });
+}
+// ═══ EXPORT PDF / IMPRESSION ══════════════════════════════════════════════════
+function exportPDF(){
+  if(!rows.length){toast('Aucune donnée à exporter','error');return;}
+  const ph=document.getElementById('print-header');
+  const pd=document.getElementById('print-date-txt');
+  if(ph)ph.style.display='block';
+  if(pd){
+    const lignes=rows.filter(r=>!r.is_total);
+    const total=lignes.reduce((s,r)=>s+(parseFloat(r.total_bon)||0),0);
+    const credit=lignes.reduce((s,r)=>s+(parseFloat(r.credit)||0),0);
+    const fmt=v=>Math.round(v).toLocaleString('fr-FR')+' F';
+    const pharmas=new Set(lignes.map(r=>(r.pharmacie||'INCONNUE').toUpperCase()).filter(Boolean));
+    pd.innerHTML='Imprimé le '+new Date().toLocaleString('fr-FR')+
+      ' &nbsp;·&nbsp; '+lignes.length+' ligne(s) &nbsp;·&nbsp; '+pharmas.size+' pharmacie(s)'+
+      ' &nbsp;·&nbsp; Total : '+fmt(total)+' &nbsp;·&nbsp; Part AMAT : '+fmt(credit);
+  }
+  // Aller sur l'onglet saisie (là où est le tableau)
+  document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));
+  const s=document.getElementById('screen-saisie');if(s)s.classList.add('active');
+  saisieFilter=null;renderTable();
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{if(ph)ph.style.display='none';},600);
+  },250);
+}
 // ═══ EXPORT ALIASES ═══════════════════════════════════════════════════════════
 function exportExcel(){exporterExcel();}
 function exportTxt(){exporterTXT();}
 function exportAll(){
   if(!rows.length){toast('Aucune donnee a exporter','error');return;}
+  saveSessionHistory();
   exporterExcel();
   setTimeout(function(){exporterTXT();},400);
-  setTimeout(function(){clearAll();go('upload');toast('Export termine','success');},900);
+  setTimeout(function(){clearAll();go('upload');toast('Export termine ✓','success');},900);
 }
 function exportSingle(i){
   var entry=fileQueue[i];if(!entry)return;
@@ -2300,6 +2678,48 @@ function testProxy(){
 }
 
 
+
+// ═══ HISTORIQUE DES SESSIONS ══════════════════════════════════════════════════
+function saveSessionHistory(){
+  if(!rows.length)return;
+  const lignes=rows.filter(r=>!r.is_total);
+  const total=lignes.reduce((s,r)=>s+(parseFloat(r.total_bon)||0),0);
+  const credit=lignes.reduce((s,r)=>s+(parseFloat(r.credit)||0),0);
+  const pharmas=new Set(lignes.map(r=>(r.pharmacie||'').trim().toUpperCase()).filter(Boolean));
+  const entry={
+    date:new Date().toLocaleString('fr-FR'),
+    lignes:lignes.length,factures:sessionFactures,
+    pharmas:pharmas.size,total:Math.round(total),
+    credit:Math.round(credit),type:currentTypeFact||'—'
+  };
+  try{
+    const hist=JSON.parse(localStorage.getItem('amat_history')||'[]');
+    hist.unshift(entry);if(hist.length>20)hist.splice(20);
+    localStorage.setItem('amat_history',JSON.stringify(hist));
+  }catch(e){}
+  renderHistory();
+}
+function renderHistory(){
+  const list=document.getElementById('history-list');if(!list)return;
+  let hist=[];
+  try{hist=JSON.parse(localStorage.getItem('amat_history')||'[]');}catch(e){}
+  if(!hist.length){
+    list.innerHTML='<div class="history-empty"><i class="fa fa-inbox" style="margin-right:6px"></i>Aucune session exportée</div>';
+    return;
+  }
+  const fmt=v=>Math.round(v).toLocaleString('fr-FR')+' F';
+  list.innerHTML=hist.map(h=>`
+    <div class="history-item">
+      <div class="hi-date"><i class="fa fa-calendar" style="margin-right:4px;opacity:.6"></i>${h.date}</div>
+      <div class="hi-info">${h.lignes} ligne(s) · ${h.factures||0} facture(s) · ${h.pharmas||0} pharmacie(s) · <em>${h.type}</em></div>
+      <div class="hi-total">${fmt(h.credit)}</div>
+    </div>`).join('');
+}
+function clearHistory(){
+  if(!confirm("Effacer tout l'historique des sessions ?"))return;
+  try{localStorage.removeItem('amat_history');}catch(e){}
+  renderHistory();toast('Historique effacé','success');
+}
 // ═══ WELCOME MODAL ════════════════════════════════════════════════════════════
 function closeWelcome(){
   var el=document.getElementById('welcome-overlay');
@@ -2315,14 +2735,42 @@ function closeWelcome(){
   var sp=localStorage.getItem('amat_proxy');
   if(pu&&sp)pu.value=sp;
   _updateBeneBadge();
+  renderHistory();
   setTimeout(function(){
     var s=document.createElement('script');s.src='/beneficiaires.js';s.async=true;document.body.appendChild(s);
   },1000);
   // Auto-fermeture welcome modal après 4s
   setTimeout(function(){closeWelcome();},4000);
+  // Raccourcis clavier globaux
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();openGSearch();}
+    if(e.key==='Escape'){closeGSearch();}
+  });
 })();
 
 </script>
+
+<!-- ─── RECHERCHE GLOBALE ──────────────────────────────────────────────────── -->
+<div class="gsearch-overlay" id="gsearch-overlay" onclick="if(event.target===this)closeGSearch()">
+  <div class="gsearch-box">
+    <div class="gsearch-iw">
+      <i class="fa fa-search"></i>
+      <input id="gsearch-input" placeholder="Rechercher matricule, patient, pharmacie, bon…" oninput="doGSearch()" onkeydown="gsearchKey(event)" autocomplete="off">
+      <kbd>Échap</kbd>
+    </div>
+    <div id="gsearch-results" class="gsearch-results"><div class="gsearch-empty"><i class="fa fa-search" style="margin-right:6px"></i>Tapez pour rechercher dans les données…</div></div>
+    <div class="gsearch-footer">
+      <span><i class="fa fa-arrow-up"></i><i class="fa fa-arrow-down"></i> naviguer · Entrée pour aller à la ligne</span>
+      <span id="gsearch-count"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── EN-TÊTE D'IMPRESSION ───────────────────────────────────────────────── -->
+<div class="print-header" id="print-header">
+  <h2>AMAT-CI — Rapport factures pharmaceutiques</h2>
+  <p id="print-date-txt"></p>
+</div>
 
 <!-- ─── MODAL DE BIENVENUE ──────────────────────────────────────────────────── -->
 <div class="welcome-overlay" id="welcome-overlay">
