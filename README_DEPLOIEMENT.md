@@ -25,18 +25,23 @@ main
 
 ## Variables Render
 
-Configurer au moins une cle API dans Render :
+Configurer en priorite la cle gratuite Gemini dans Render :
+
+```text
+GEMINI_API_KEY=...
+```
+
+Optionnellement, ajouter aussi Claude ou Groq comme secours :
 
 ```text
 ANTHROPIC_API_KEY=...
 GROQ_API_KEY=...
-GEMINI_API_KEY=...
 ```
 
 Le serveur choisit automatiquement dans cet ordre :
 
 ```text
-Claude -> Groq -> Gemini
+Gemini -> Claude -> Groq
 ```
 
 ## Commandes utiles

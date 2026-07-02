@@ -5,7 +5,7 @@
  *   GEMINI_API_KEY    = votre clé AIza...            (Gemini, gratuit — format AIza uniquement)
  *   GROQ_API_KEY      = votre clé gsk_...            (Groq/Llama, gratuit)
  *
- * Priorité auto : Claude → Groq → Gemini
+ * Priorité auto : Gemini → Claude → Groq
  */
 
 const http  = require('http');
@@ -260,7 +260,21 @@ async function callAI(messages, provider, geminiKey, groqKey) {
   if (provider === 'claude') return callAnthropic({ model: 'claude-sonnet-4-6', max_tokens: 8096, messages });
   if (provider === 'groq')   return callGroq(messages, groqKey);
 
-  // Auto : Claude → Groq → Gemini
+  // Auto : Gemini gratuit en priorité, puis Claude, puis Groq.
+  if (hasGemini) {
+    try { return await callGemini(messages, geminiKey); }
+    catch (e) {
+      if (hasAnthropic) {
+        console.log('[Auto] Gemini échoué, bascule Claude:', e.message);
+        return callAnthropic({ model: 'claude-sonnet-4-6', max_tokens: 8096, messages });
+      }
+      if (hasGroq) {
+        console.log('[Auto] Gemini échoué, bascule Groq:', e.message);
+        return callGroq(messages, groqKey);
+      }
+      throw e;
+    }
+  }
   if (hasAnthropic) {
     try { return await callAnthropic({ model: 'claude-sonnet-4-6', max_tokens: 8096, messages }); }
     catch (e) {
@@ -268,16 +282,11 @@ async function callAI(messages, provider, geminiKey, groqKey) {
         console.log('[Auto] Claude échoué, bascule Groq:', e.message);
         return callGroq(messages, groqKey);
       }
-      if (hasGemini) {
-        console.log('[Auto] Claude échoué, bascule Gemini:', e.message);
-        return callGemini(messages, geminiKey);
-      }
       throw e;
     }
   }
   if (hasGroq)   return callGroq(messages, groqKey);
-  if (hasGemini) return callGemini(messages, geminiKey);
-  throw new Error('Aucune clé API configurée — ajoutez GROQ_API_KEY (gratuit sur groq.com) dans les variables Render');
+  throw new Error('Aucune clé API configurée — ajoutez GEMINI_API_KEY (gratuit sur aistudio.google.com/apikey) dans Render ou dans la plateforme');
 }
 
 // ─── Serveur ──────────────────────────────────────────────────────────────────
@@ -291,7 +300,7 @@ const server = http.createServer(async (req, res) => {
   // Santé
   if (req.method === 'GET' && req.url === '/health') {
     const hasC = !!ANTHROPIC_API_KEY, hasG = isValidGeminiKey(GEMINI_API_KEY), hasGr = isValidGroqKey(GROQ_API_KEY);
-    const provider = hasC ? 'claude' : hasGr ? 'groq' : hasG ? 'gemini' : 'none';
+    const provider = hasG ? 'gemini' : hasC ? 'claude' : hasGr ? 'groq' : 'none';
     return sendJSON(res, 200, {
       status: 'ok',
       apiKeyConfigured: !!(hasC || hasG || hasGr),
@@ -334,7 +343,7 @@ const server = http.createServer(async (req, res) => {
       const groqKey   = body.groq_key    || '';
 
       const providerLabel = provider === 'auto'
-        ? (ANTHROPIC_API_KEY ? 'Claude (auto)' : GROQ_API_KEY ? 'Groq (auto)' : 'Gemini (auto)')
+        ? (isValidGeminiKey(geminiKey || GEMINI_API_KEY) ? 'Gemini (auto)' : ANTHROPIC_API_KEY ? 'Claude (auto)' : isValidGroqKey(groqKey || GROQ_API_KEY) ? 'Groq (auto)' : 'Aucune clé')
         : provider;
       console.log(`[${new Date().toLocaleTimeString('fr-FR')}] Analyse — ${providerLabel}`);
 
@@ -366,7 +375,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   const hasC = !!ANTHROPIC_API_KEY, hasG = isValidGeminiKey(GEMINI_API_KEY), hasGr = isValidGroqKey(GROQ_API_KEY);
-  const modeStr = hasC && hasGr ? 'Claude → Groq (fallback)' : hasC ? 'Claude uniquement' : hasGr ? 'Groq uniquement' : hasG ? 'Gemini uniquement' : '⚠ AUCUNE CLÉ';
+  const modeStr = hasG && hasC ? 'Gemini → Claude (fallback)' : hasG && hasGr ? 'Gemini → Groq (fallback)' : hasG ? 'Gemini gratuit' : hasC ? 'Claude uniquement' : hasGr ? 'Groq uniquement' : '⚠ AUCUNE CLÉ';
   console.log('\n╔══════════════════════════════════════════════════════════╗');
   console.log('║              AMAT-CI — Plateforme active                 ║');
   console.log('╠══════════════════════════════════════════════════════════╣');
