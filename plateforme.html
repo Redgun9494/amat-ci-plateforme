@@ -2901,7 +2901,7 @@ function testGeminiKey(){
   if(!/^(AIza[0-9A-Za-z_-]{20,}|AQ\.[0-9A-Za-z_-]{20,})$/.test(k)){toast('Clé Gemini invalide','error');return;}
   const s=document.getElementById('gemini-status');
   if(s){s.style.display='block';s.textContent='Test en cours…';s.style.color='var(--text3)';}
-  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',{
+  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent',{
     method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':k},
     body:JSON.stringify({contents:[{parts:[{text:'Réponds juste OK'}]}]})
   }).then(r=>r.json()).then(d=>{

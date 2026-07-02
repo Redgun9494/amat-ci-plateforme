@@ -121,7 +121,8 @@ function callGemini(messages, geminiKey) {
       generationConfig: { maxOutputTokens: 8192, temperature: 0.1 }
     };
     const bodyStr = JSON.stringify(payload);
-    const apiPath = '/v1beta/models/gemini-2.0-flash:generateContent';
+    const geminiModel = process.env.GEMINI_MODEL || config.GEMINI_MODEL || 'gemini-2.0-flash-lite';
+    const apiPath = `/v1beta/models/${geminiModel}:generateContent`;
 
     const req = https.request({
       hostname: 'generativelanguage.googleapis.com',
@@ -140,7 +141,8 @@ function callGemini(messages, geminiKey) {
           const geminiResp = JSON.parse(data);
           if (resp.statusCode !== 200) {
             const errMsg = geminiResp.error?.message || JSON.stringify(geminiResp).substring(0, 200);
-            return resolve({ status: resp.statusCode, body: { error: { message: 'Gemini: ' + errMsg } } });
+            const quotaHint = resp.statusCode === 429 ? 'Quota gratuit Gemini atteint ou non disponible pour ce projet. Essayez plus tard, utilisez un autre projet Google AI Studio, activez la facturation, ou basculez sur Groq.' : '';
+            return resolve({ status: resp.statusCode, body: { error: { message: ('Gemini: ' + errMsg + (quotaHint ? ' — ' + quotaHint : '')).trim() } } });
           }
           // Normaliser en format Claude pour que le frontend n'ait pas à changer
           const text = geminiResp.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
@@ -148,7 +150,7 @@ function callGemini(messages, geminiKey) {
             id: 'gemini-' + Date.now(),
             type: 'message',
             role: 'assistant',
-            model: 'gemini-2.0-flash',
+            model: geminiModel,
             content: [{ type: 'text', text }],
             stop_reason: 'end_turn',
             _provider: 'gemini'
