@@ -121,7 +121,7 @@ function callGemini(messages, geminiKey) {
       generationConfig: { maxOutputTokens: 8192, temperature: 0.1 }
     };
     const bodyStr = JSON.stringify(payload);
-    const apiPath = `/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`;
+    const apiPath = '/v1beta/models/gemini-2.0-flash:generateContent';
 
     const req = https.request({
       hostname: 'generativelanguage.googleapis.com',
@@ -129,6 +129,7 @@ function callGemini(messages, geminiKey) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': key,
         'Content-Length': Buffer.byteLength(bodyStr),
       },
     }, resp => {
