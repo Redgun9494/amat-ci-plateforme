@@ -1,0 +1,20 @@
+# Logs and runtime output
+*.log
+npm-debug.log*
+
+# Local secrets and environment files
+.env
+.env.*
+config.txt
+
+# Dependencies and build output
+node_modules/
+dist/
+build/
+.cache/
+
+# OS/editor files
+Thumbs.db
+.DS_Store
+.vscode/
+
