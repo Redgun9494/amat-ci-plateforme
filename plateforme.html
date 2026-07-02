@@ -1295,7 +1295,7 @@ body.dark .ai-btn.selected{background:var(--g2);color:#fff}
           <i class="fa fa-key" style="margin-right:4px;color:#1A73E8"></i>Clé API Google Gemini
         </label>
         <div class="cfg-row">
-          <input type="password" id="gemini-key-input" placeholder="AIzaSy… (obtenez-la gratuitement sur aistudio.google.com)" autocomplete="off">
+          <input type="password" id="gemini-key-input" placeholder="Clé Google AI Studio…" autocomplete="off">
           <button class="btn btn-outline" onclick="testGeminiKey()"><i class="fa fa-plug"></i> Tester</button>
           <button class="btn btn-green"   onclick="saveGeminiKey()"><i class="fa fa-check"></i> Enregistrer</button>
         </div>
@@ -2888,7 +2888,7 @@ function testGroqKey(){
 function saveGeminiKey(){
   const k=(document.getElementById('gemini-key-input')?.value||'').trim();
   if(!k){toast('Clé vide','error');return;}
-  if(!/^AIza[0-9A-Za-z_-]{20,}$/.test(k)){toast('Clé Gemini invalide (doit commencer par AIza)','error');return;}
+  if(!/^(AIza[0-9A-Za-z_-]{20,}|AQ\.[0-9A-Za-z_-]{20,})$/.test(k)){toast('Clé Gemini invalide','error');return;}
   localStorage.setItem('amat_gemini_key',k);
   const s=document.getElementById('gemini-status');
   if(s){s.style.display='block';s.textContent='✅ Clé enregistrée localement';s.style.color='#1E7A3A';}
@@ -2898,7 +2898,7 @@ function saveGeminiKey(){
 function testGeminiKey(){
   const k=(document.getElementById('gemini-key-input')?.value||'').trim()||getGeminiKey();
   if(!k){toast('Entrez d\'abord la clé Gemini','error');return;}
-  if(!/^AIza[0-9A-Za-z_-]{20,}$/.test(k)){toast('Clé Gemini invalide','error');return;}
+  if(!/^(AIza[0-9A-Za-z_-]{20,}|AQ\.[0-9A-Za-z_-]{20,})$/.test(k)){toast('Clé Gemini invalide','error');return;}
   const s=document.getElementById('gemini-status');
   if(s){s.style.display='block';s.textContent='Test en cours…';s.style.color='var(--text3)';}
   fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+encodeURIComponent(k),{

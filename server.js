@@ -32,7 +32,7 @@ let GROQ_API_KEY      = process.env.GROQ_API_KEY      || config.GROQ_API_KEY    
 const PORT = parseInt(process.env.PORT || config.PORT) || 3000;
 
 function isValidGeminiKey(key) {
-  return /^AIza[0-9A-Za-z_-]{20,}$/.test(String(key || '').trim());
+  return /^(AIza[0-9A-Za-z_-]{20,}|AQ\.[0-9A-Za-z_-]{20,})$/.test(String(key || '').trim());
 }
 
 function isValidGroqKey(key) {
@@ -113,7 +113,7 @@ function callGemini(messages, geminiKey) {
   return new Promise((resolve, reject) => {
     const key = String(geminiKey || GEMINI_API_KEY || '').trim();
     if (!key) return reject(new Error('Clé Gemini non configurée — définissez GEMINI_API_KEY ou entrez-la dans la plateforme'));
-    if (!isValidGeminiKey(key)) return reject(new Error('Clé Gemini invalide — elle doit commencer par AIza et provenir de Google AI Studio'));
+    if (!isValidGeminiKey(key)) return reject(new Error('Clé Gemini invalide — créez/copiez une clé depuis Google AI Studio'));
 
     const parts = claudeMessagesToGeminiParts(messages);
     const payload = {
