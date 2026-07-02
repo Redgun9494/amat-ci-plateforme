@@ -219,7 +219,8 @@ async function claudeMessagesToGroqMessages(messages) {
 }
 
 function callGroq(messages, groqKey) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    try {
     const key = String(groqKey || GROQ_API_KEY || '').trim();
     if (!key) return reject(new Error('Clé Groq non configurée — inscrivez-vous sur groq.com et entrez votre clé gsk_...'));
     if (!isValidGroqKey(key)) return reject(new Error('Clé Groq invalide — elle doit commencer par gsk_ et provenir de console.groq.com'));
@@ -278,6 +279,7 @@ function callGroq(messages, groqKey) {
     req.on('error', reject);
     req.write(bodyStr);
     req.end();
+    } catch(e) { reject(e); }
   });
 }
 
@@ -304,7 +306,8 @@ async function claudeMessagesToOpenAIMessages(messages) {
 }
 
 function callMistral(messages, mistralKey) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    try {
     const key = String(mistralKey || MISTRAL_API_KEY || '').trim();
     if (!key) return reject(new Error('Clé Mistral non configurée — inscrivez-vous sur console.mistral.ai'));
     if (!isValidMistralKey(key)) return reject(new Error('Clé Mistral invalide'));
@@ -350,12 +353,14 @@ function callMistral(messages, mistralKey) {
     req.on('error', reject);
     req.write(bodyStr);
     req.end();
+    } catch(e) { reject(e); }
   });
 }
 
 // ─── Appel OpenRouter (modèles gratuits) ─────────────────────────────────────
 function callOpenRouter(messages, openRouterKey) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    try {
     const key = String(openRouterKey || OPENROUTER_API_KEY || '').trim();
     if (!key) return reject(new Error('Clé OpenRouter non configurée — inscrivez-vous sur openrouter.ai'));
     if (!isValidOpenRouterKey(key)) return reject(new Error('Clé OpenRouter invalide (doit commencer par sk-or-)'));
@@ -402,6 +407,7 @@ function callOpenRouter(messages, openRouterKey) {
     req.on('error', reject);
     req.write(bodyStr);
     req.end();
+    } catch(e) { reject(e); }
   });
 }
 
