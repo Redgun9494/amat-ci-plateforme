@@ -948,11 +948,14 @@ body.dark .ai-btn.selected{background:var(--g2);color:#fff}
           <button onclick="selectTypeFact('pharmacie')" id="tfbtn-pharmacie" class="tf-btn">
             <i class="fa fa-pills"></i> Pharmacie
           </button>
-          <button onclick="selectTypeFact('publique')" id="tfbtn-publique" class="tf-btn">
-            <i class="fa fa-hospital"></i> Publique
+          <button onclick="selectTypeFact('clinique')" id="tfbtn-clinique" class="tf-btn">
+            <i class="fa fa-clinic-medical"></i> Clinique
           </button>
-          <button onclick="selectTypeFact('consultation')" id="tfbtn-consultation" class="tf-btn">
-            <i class="fa fa-stethoscope"></i> Consultation
+          <button onclick="selectTypeFact('hopital_general')" id="tfbtn-hopital_general" class="tf-btn">
+            <i class="fa fa-hospital"></i> Hôpital Général
+          </button>
+          <button onclick="selectTypeFact('centre_sante')" id="tfbtn-centre_sante" class="tf-btn">
+            <i class="fa fa-heartbeat"></i> Centre de Santé
           </button>
         </div>
         <div id="tf-warning" style="display:none;margin-top:8px;font-size:12px;color:#B33;font-weight:600">
@@ -1208,7 +1211,7 @@ body.dark .ai-btn.selected{background:var(--g2);color:#fff}
       <div id="s-groupes" style="display:none;background:#F0FAF4;border:1px solid #B0D8BC;border-radius:10px;padding:12px 16px;margin-bottom:4px"></div>
       <div class="note">
         <i class="fa fa-info-circle" style="color:var(--orange);margin-top:2px;flex-shrink:0"></i>
-        ✅ Un fichier <strong>Excel + TXT par pharmacie</strong> est généré automatiquement. Patients en MAJUSCULES, onglet Excel nommé d'après la pharmacie. Le tableau est vidé après téléchargement.
+        ✅ Un fichier <strong>Excel + TXT par établissement</strong> est généré automatiquement. Patients en MAJUSCULES, onglet Excel nommé d'après l'établissement. Le tableau est vidé après téléchargement.
       </div>
     </div>
 
@@ -1754,7 +1757,7 @@ async function retryOne(i){
         (entry.type==='application/pdf'
           ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}}
           :{type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}}),
-        {type:'text',text:ANALYSE_PROMPT}
+        {type:'text',text:getAnalysePrompt()}
       ]}]})
     });
     if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'Erreur '+resp.status);}
@@ -1850,21 +1853,20 @@ function detectAndRemoveTotalRow(lignes){
 }
 
 // ═══ EXTRACTION MULTI-FICHIERS (PARALLÈLE + RETRY) ══════════════════════════
-const ANALYSE_PROMPT=`Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire). Analyse cette facture médicale/pharmaceutique (image ou document PDF).
-
-RÈGLES STRICTES :
-1. "patient" : nom du BÉNÉFICIAIRE/PATIENT indiqué sur la facture. Sinon vide.
-2. "salarie" : nom de l'ADHÉRENT/SALARIÉ indiqué. Sinon vide.
+// ═══ PROMPTS IA PAR TYPE D'ÉTABLISSEMENT ════════════════════════════════════
+const _PROMPT_BASE_REGLES = `RÈGLES STRICTES :
+1. "patient" : nom du BÉNÉFICIAIRE/PATIENT indiqué sur le document. Sinon vide.
+2. "salarie" : nom de l'ADHÉRENT/SALARIÉ (agent DGTCP) indiqué. Sinon vide.
 3. "matricule" : numéro matricule de l'agent (chiffres+lettres, sans espaces ni tirets ni points).
-4. "taux" : TOUJOURS null — ne jamais renseigner même si visible.
-5. "ref_bon" : numéro de bon de prise en charge — unique par ligne, ne pas dupliquer.
+4. "taux" : TOUJOURS null — ne jamais renseigner même si visible sur le document.
+5. "ref_bon" : numéro du bon de prise en charge — unique par ligne, ne pas dupliquer.
 6. NE PAS inclure les lignes de total/sous-total/cumul/montant total.
-7. "pharmacie" = NOM COMPLET du FOURNISSEUR en majuscules (ex: "CHU DE YOPOUGON", "PHARMACIE SAINTE BEATRICE"). JAMAIS "AMAT-CI", "DGTCP" ou "TRÉSOR".
-8. "type_etablissement" : "CHU" | "HOPITAL_GENERAL" | "CLINIQUE" | "PHARMACIE".
-9. Si plusieurs bénéficiaires sur la même facture, créer UNE LIGNE PAR BÉNÉFICIAIRE.
-10. Les montants (total_bon, comptant, credit) sont des nombres entiers en francs CFA.
+7. "pharmacie" = NOM COMPLET DE L'ÉTABLISSEMENT en majuscules. JAMAIS "AMAT-CI", "DGTCP" ou "TRÉSOR".
+8. Si plusieurs bénéficiaires, créer UNE LIGNE PAR BÉNÉFICIAIRE.
+9. Les montants sont des nombres entiers en francs CFA.
+Valeurs illisibles = chaîne vide ou 0. Noms TOUJOURS en MAJUSCULES.`;
 
-Retourne UNIQUEMENT un JSON valide, sans texte avant ni après :
+const _PROMPT_JSON_FORMAT = `Retourne UNIQUEMENT un JSON valide, sans texte avant ni après :
 {
   "pharmacie": "NOM EN MAJUSCULES",
   "type_etablissement": "PHARMACIE",
@@ -1882,8 +1884,65 @@ Retourne UNIQUEMENT un JSON valide, sans texte avant ni après :
     "comptant": 0,
     "credit": 0
   }]
+}`;
+
+const PROMPTS_PAR_TYPE = {
+  pharmacie: `Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire).
+Analyse cette FACTURE DE PHARMACIE (médicaments, produits pharmaceutiques).
+
+CONTEXTE : Facture émise par une pharmacie pour des médicaments remboursés par l'AMAT-CI.
+Chaque ligne correspond à un BON DE PRISE EN CHARGE d'un bénéficiaire.
+"total_bon" = montant total du bon, "credit" = part remboursée AMAT-CI, "comptant" = part payée par le bénéficiaire.
+"type_etablissement" = "PHARMACIE".
+
+${_PROMPT_BASE_REGLES}
+${_PROMPT_JSON_FORMAT}`,
+
+  clinique: `Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire).
+Analyse cette FACTURE DE CLINIQUE PRIVÉE (consultation, soins, actes médicaux).
+
+CONTEXTE : Facture émise par une clinique privée pour des consultations, actes médicaux ou soins.
+Chaque ligne correspond à un BON DE PRISE EN CHARGE d'un bénéficiaire (consultation, examen, soin).
+"total_bon" = montant total des soins, "credit" = part remboursée AMAT-CI, "comptant" = reste à charge.
+"type_etablissement" = "CLINIQUE".
+Le champ "patient" contient le nom du malade. Le champ "ref_bon" contient le numéro du bon de soins.
+Si la facture contient des actes (consultation, radio, analyses), regrouper par bénéficiaire.
+
+${_PROMPT_BASE_REGLES}
+${_PROMPT_JSON_FORMAT}`,
+
+  hopital_general: `Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire).
+Analyse cette FACTURE D'HÔPITAL GÉNÉRAL / CHU / CHR (soins hospitaliers, consultations spécialisées).
+
+CONTEXTE : Facture émise par un hôpital général, CHU (Centre Hospitalier Universitaire) ou CHR
+pour des consultations spécialisées, hospitalisations, actes chirurgicaux ou examens.
+Chaque ligne = un bénéficiaire avec son bon de prise en charge.
+"total_bon" = montant total, "credit" = part AMAT-CI, "comptant" = part patient.
+"type_etablissement" = "HOPITAL_GENERAL".
+Le nom de l'hôpital (ex: "CHU DE COCODY", "HOPITAL GENERAL DE YOPOUGON") va dans "pharmacie".
+
+${_PROMPT_BASE_REGLES}
+${_PROMPT_JSON_FORMAT}`,
+
+  centre_sante: `Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire).
+Analyse cette FACTURE DE CENTRE DE SANTÉ PUBLIQUE / DISPENSAIRE / INFIRMERIE.
+
+CONTEXTE : Facture émise par un centre de santé publique, dispensaire, infirmerie ou espace de santé
+communautaire pour des soins primaires, consultations de base ou médicaments essentiels.
+Chaque ligne = un bénéficiaire avec son bon de prise en charge.
+"total_bon" = montant total des soins, "credit" = part AMAT-CI, "comptant" = reste à charge.
+"type_etablissement" = "HOPITAL_GENERAL".
+Le nom du centre (ex: "CENTRE DE SANTE ABOBO", "DISPENSAIRE ADJAME") va dans "pharmacie".
+
+${_PROMPT_BASE_REGLES}
+${_PROMPT_JSON_FORMAT}`
+};
+
+function getAnalysePrompt(){
+  return PROMPTS_PAR_TYPE[currentTypeFact] || PROMPTS_PAR_TYPE.pharmacie;
 }
-Valeurs illisibles = chaîne vide ou 0. Noms TOUJOURS en MAJUSCULES.`;
+// Rétro-compatibilité (alias statique)
+const ANALYSE_PROMPT = PROMPTS_PAR_TYPE.pharmacie;
 
 let _sessionBeneMatched=0;
 
@@ -1919,7 +1978,7 @@ async function extractAll(){
               (entry.type==='application/pdf'
                 ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}}
                 :{type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}}),
-              {type:'text',text:ANALYSE_PROMPT}
+              {type:'text',text:getAnalysePrompt()}
             ]}]
           })
         });
@@ -1942,12 +2001,14 @@ async function extractAll(){
         entry.typeEtab=TYPES.includes(typeEtab)?typeEtab:'PHARMACIE';
         // ─── Auto-détection type de facture si non sélectionné ───────────────
         if(!currentTypeFact){
-          const aiT=(parsed.type_etablissement||'').toLowerCase();
-          if(/pharmacie/.test(aiT)) selectTypeFact('pharmacie');
-          else if(/chu|hopital|clinique|centre_sante|centre\s+de\s+sante/.test(aiT)) selectTypeFact('publique');
-          else if(/consultation/.test(aiT)) selectTypeFact('consultation');
+          const aiT=(parsed.type_etablissement||'').toUpperCase();
+          if(aiT==='PHARMACIE') selectTypeFact('pharmacie');
+          else if(aiT==='CLINIQUE') selectTypeFact('clinique');
+          else if(aiT==='CHU'||aiT==='HOPITAL_GENERAL') selectTypeFact('hopital_general');
+          else if(/CENTRE|DISPENSAIRE|INFIRMERIE/.test(aiT)) selectTypeFact('centre_sante');
           else selectTypeFact('pharmacie');
-          toast('✨ Type auto-détecté : '+currentTypeFact,'info',2200);
+          const lbl=TYPE_LABELS[currentTypeFact]||currentTypeFact;
+          toast('✨ Type auto-détecté : '+lbl,'info',2200);
         }
 
         const nouvelles=parsed.lignes||[];
@@ -2535,15 +2596,28 @@ function toggleDark(){
 
 
 // ═══ SÉLECTION TYPE DE FACTURE ════════════════════════════════════════════════
+const TYPE_LABELS={
+  pharmacie:'Pharmacie',
+  clinique:'Clinique',
+  hopital_general:'Hôpital Général',
+  centre_sante:'Centre de Santé',
+  // rétro-compat
+  publique:'Hôpital Général',
+  consultation:'Clinique'
+};
 function selectTypeFact(type){
+  // Rétro-compatibilité avec anciens types
+  if(type==='publique') type='hopital_general';
+  if(type==='consultation') type='clinique';
   currentTypeFact=type;
-  ['pharmacie','publique','consultation'].forEach(function(t){
+  ['pharmacie','clinique','hopital_general','centre_sante','publique','consultation'].forEach(function(t){
     var btn=document.getElementById('tfbtn-'+t);
     if(btn)btn.classList.toggle('selected',t===type);
   });
   var dz=document.getElementById('dz');
   if(dz){dz.style.opacity='1';dz.style.pointerEvents='auto';dz.title='';}
-  toast('Type : '+type.charAt(0).toUpperCase()+type.slice(1),'success',1500);
+  var label=TYPE_LABELS[type]||type;
+  toast('Type : '+label,'success',1500);
 }
 
 // ═══ AUTO-FILL TAUX ═══════════════════════════════════════════════════════════
