@@ -721,6 +721,7 @@ body.dark .history-item{background:#132818;border-color:#1E4030}
 .ai-btn:hover{border-color:var(--g2);color:var(--g1)}
 .ai-btn.selected{border-color:var(--g2);background:var(--g2);color:#fff}
 .ai-btn.selected-gemini{border-color:#1A73E8;background:#1A73E8;color:#fff}
+.ai-btn.selected-groq{border-color:#F55036;background:#F55036;color:#fff}
 body.dark .ai-btn{background:#0E1D14;border-color:#1E4030;color:var(--text3)}
 body.dark .ai-btn.selected{background:var(--g2);color:#fff}
 </style>
@@ -1259,8 +1260,7 @@ body.dark .ai-btn.selected{background:var(--g2);color:#fff}
       <div class="card-title"><i class="fa fa-robot"></i> Intelligence Artificielle</div>
       <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
         Choisissez le fournisseur d'IA pour analyser vos factures.
-        <strong>Gemini Flash</strong> est <span style="color:#1E7A3A;font-weight:700">gratuit</span>
-        (15 analyses/min, 1 500/jour — sans carte bancaire).
+        <strong>Groq (Llama 4)</strong> et <strong>Gemini Flash</strong> sont <span style="color:#1E7A3A;font-weight:700">gratuits</span> — sans carte bancaire.
       </p>
       <!-- Sélecteur fournisseur -->
       <div style="margin-bottom:16px">
@@ -1268,13 +1268,30 @@ body.dark .ai-btn.selected{background:var(--g2);color:#fff}
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="ai-btn" id="ai-auto"   onclick="setProvider('auto')">🔄 Automatique</button>
           <button class="ai-btn" id="ai-claude" onclick="setProvider('claude')">⚡ Claude (Anthropic)</button>
+          <button class="ai-btn" id="ai-groq"   onclick="setProvider('groq')">🦙 Groq · Llama (gratuit)</button>
           <button class="ai-btn" id="ai-gemini" onclick="setProvider('gemini')">💎 Gemini (Google · gratuit)</button>
         </div>
         <div id="ai-mode-hint" style="margin-top:8px;font-size:11px;color:var(--text3)"></div>
       </div>
+      <!-- Clé Groq -->
+      <div id="groq-key-section">
+        <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:8px">
+          <i class="fa fa-key" style="margin-right:4px;color:#F55036"></i>Clé API Groq (Llama 4 vision · gratuit)
+        </label>
+        <div class="cfg-row">
+          <input type="password" id="groq-key-input" placeholder="gsk_… (obtenez-la gratuitement sur console.groq.com)" autocomplete="off">
+          <button class="btn btn-outline" onclick="testGroqKey()"><i class="fa fa-plug"></i> Tester</button>
+          <button class="btn btn-green"   onclick="saveGroqKey()"><i class="fa fa-check"></i> Enregistrer</button>
+        </div>
+        <div class="proxy-status" id="groq-status" style="display:none"></div>
+        <p style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">
+          <i class="fa fa-external-link-alt" style="margin-right:4px"></i>
+          Clé gratuite : <strong>console.groq.com/keys</strong> → "Create API Key" → sans carte bancaire
+        </p>
+      </div>
       <!-- Clé Gemini -->
       <div id="gemini-key-section">
-        <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:8px">
+        <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:8px;margin-top:14px">
           <i class="fa fa-key" style="margin-right:4px;color:#1A73E8"></i>Clé API Google Gemini
         </label>
         <div class="cfg-row">
@@ -1753,7 +1770,7 @@ async function retryOne(i){
   try{
     const resp=await fetch(proxyUrl+'/analyser',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({max_tokens:8096,provider:getProvider(),gemini_key:getGeminiKey(),messages:[{role:'user',content:[
+      body:JSON.stringify({max_tokens:8096,provider:getProvider(),gemini_key:getGeminiKey(),groq_key:getGroqKey(),messages:[{role:'user',content:[
         (entry.type==='application/pdf'
           ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}}
           :{type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}}),
@@ -1974,6 +1991,7 @@ async function extractAll(){
             max_tokens:8096,
             provider:getProvider(),
             gemini_key:getGeminiKey(),
+            groq_key:getGroqKey(),
             messages:[{role:'user',content:[
               (entry.type==='application/pdf'
                 ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}}
@@ -2803,22 +2821,63 @@ function testProxy(){
 // ═══ FOURNISSEUR IA ═══════════════════════════════════════════════════════════
 function getProvider(){ return localStorage.getItem('amat_provider')||'auto'; }
 function getGeminiKey(){ return localStorage.getItem('amat_gemini_key')||''; }
+function getGroqKey(){   return localStorage.getItem('amat_groq_key')||''; }
 
 function setProvider(p){
   localStorage.setItem('amat_provider',p);
-  ['auto','claude','gemini'].forEach(id=>{
+  const colorMap={gemini:'selected-gemini',groq:'selected-groq'};
+  ['auto','claude','groq','gemini'].forEach(id=>{
     const b=document.getElementById('ai-'+id);if(!b)return;
-    b.className='ai-btn'+(p===id?(id==='gemini'?' selected-gemini':' selected'):'');
+    b.className='ai-btn'+(p===id?(' '+(colorMap[id]||'selected')):'');
   });
   const hints={
-    auto:'Mode automatique : Claude si disponible, sinon Gemini en fallback.',
+    auto:'Mode automatique : Claude → Groq → Gemini selon les clés configurées.',
     claude:'Claude uniquement — nécessite ANTHROPIC_API_KEY configurée sur Render.',
+    groq:'Groq (Llama 4 Scout) — gratuit avec votre clé console.groq.com.',
     gemini:'Gemini uniquement — gratuit avec votre clé Google AI Studio.'
   };
   const h=document.getElementById('ai-mode-hint');if(h)h.textContent=hints[p]||'';
+  // Afficher/masquer sections de clés
   const gs=document.getElementById('gemini-key-section');
-  if(gs)gs.style.display=p==='claude'?'none':'';
-  toast('IA : '+{auto:'Automatique',claude:'Claude',gemini:'Gemini'}[p],'success',1500);
+  const grs=document.getElementById('groq-key-section');
+  if(gs) gs.style.display=(p==='claude'||p==='groq')?'none':'';
+  if(grs)grs.style.display=(p==='claude'||p==='gemini')?'none':'';
+  toast('IA : '+{auto:'Automatique',claude:'Claude',groq:'Groq',gemini:'Gemini'}[p],'success',1500);
+}
+
+function saveGroqKey(){
+  const k=(document.getElementById('groq-key-input')?.value||'').trim();
+  if(!k){toast('Clé vide','error');return;}
+  if(!k.startsWith('gsk_')){toast('Clé Groq invalide (doit commencer par gsk_)','error');return;}
+  localStorage.setItem('amat_groq_key',k);
+  const s=document.getElementById('groq-status');
+  if(s){s.style.display='block';s.textContent='✅ Clé enregistrée localement';s.style.color='#1E7A3A';}
+  toast('Clé Groq enregistrée','success');
+}
+
+function testGroqKey(){
+  const k=(document.getElementById('groq-key-input')?.value||'').trim()||getGroqKey();
+  if(!k){toast('Entrez d\'abord la clé Groq','error');return;}
+  const s=document.getElementById('groq-status');
+  if(s){s.style.display='block';s.textContent='Test en cours…';s.style.color='var(--text3)';}
+  const proxyUrl=(localStorage.getItem('amat_proxy')||window.location.origin).replace(/\/$/,'');
+  fetch(proxyUrl+'/analyser',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({provider:'groq',groq_key:k,messages:[{role:'user',content:'Réponds juste OK'}]})
+  }).then(r=>r.json()).then(d=>{
+    const txt=d.content?.[0]?.text||'';
+    if(txt){
+      if(s){s.textContent='✅ Clé valide — Groq répond : '+txt.substring(0,40);s.style.color='#1E7A3A';}
+      toast('Groq OK !','success');
+    } else {
+      const err=d.error?.message||JSON.stringify(d).substring(0,80);
+      if(s){s.textContent='❌ '+err;s.style.color='#B33';}
+      toast('Erreur Groq','error');
+    }
+  }).catch(e=>{
+    if(s){s.textContent='Erreur réseau : '+e.message;s.style.color='#B33';}
+    toast('Groq inaccessible','error');
+  });
 }
 
 function saveGeminiKey(){
@@ -2857,21 +2916,28 @@ function testGeminiKey(){
 
 function _initProviderUI(){
   const p=getProvider();
-  ['auto','claude','gemini'].forEach(id=>{
+  const colorMap={gemini:'selected-gemini',groq:'selected-groq'};
+  ['auto','claude','groq','gemini'].forEach(id=>{
     const b=document.getElementById('ai-'+id);if(!b)return;
-    b.className='ai-btn'+(p===id?(id==='gemini'?' selected-gemini':' selected'):'');
+    b.className='ai-btn'+(p===id?(' '+(colorMap[id]||'selected')):'');
   });
   const hints={
-    auto:'Mode automatique : Claude si disponible, sinon Gemini en fallback.',
+    auto:'Mode automatique : Claude → Groq → Gemini selon les clés configurées.',
     claude:'Claude uniquement — nécessite ANTHROPIC_API_KEY sur Render.',
+    groq:'Groq (Llama 4 Scout) — gratuit avec votre clé console.groq.com.',
     gemini:'Gemini uniquement — gratuit avec votre clé Google AI Studio.'
   };
   const h=document.getElementById('ai-mode-hint');if(h)h.textContent=hints[p]||'';
   const gs=document.getElementById('gemini-key-section');
-  if(gs)gs.style.display=p==='claude'?'none':'';
+  const grs=document.getElementById('groq-key-section');
+  if(gs) gs.style.display=(p==='claude'||p==='groq')?'none':'';
+  if(grs)grs.style.display=(p==='claude'||p==='gemini')?'none':'';
   const ki=document.getElementById('gemini-key-input');
-  const savedKey=getGeminiKey();
-  if(ki&&savedKey)ki.value=savedKey;
+  const savedGeminiKey=getGeminiKey();
+  if(ki&&savedGeminiKey)ki.value=savedGeminiKey;
+  const gki=document.getElementById('groq-key-input');
+  const savedGroqKey=getGroqKey();
+  if(gki&&savedGroqKey)gki.value=savedGroqKey;
   // Badge serveur
   const sb=document.getElementById('server-badge');
   if(sb){
@@ -2882,7 +2948,7 @@ function _initProviderUI(){
         const dot=sb.querySelector('.dot');if(dot)dot.style.background='#4DEDA0';
         const span=sb.querySelector('span');
         if(span){
-          const pLabel={claude:'Claude',gemini:'Gemini','claude+gemini':'Claude+Gemini',none:'Aucune clé'};
+          const pLabel={claude:'Claude',groq:'Groq',gemini:'Gemini','claude+gemini':'Claude+Gemini',none:'Aucune clé'};
           span.textContent='Serveur · '+(pLabel[d.provider]||d.provider||'IA');
         }
       }
