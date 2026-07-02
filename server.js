@@ -15,6 +15,22 @@ const https = require('https');
 const fs    = require('fs');
 const path  = require('path');
 
+// pdf-parse : extraction texte PDF (fallback si non installé)
+let pdfParse = null;
+try { pdfParse = require('pdf-parse'); } catch(e) { console.warn('[PDF] pdf-parse non disponible — install avec npm install pdf-parse'); }
+
+async function extractPdfText(base64Data) {
+  if (!pdfParse) return '[PDF joint — installez pdf-parse pour extraction automatique]';
+  try {
+    const buffer = Buffer.from(base64Data, 'base64');
+    const data = await pdfParse(buffer);
+    const text = (data.text || '').replace(/\s{3,}/g, '\n').trim().substring(0, 20000);
+    return text || '[PDF vide ou non lisible]';
+  } catch(e) {
+    return '[PDF illisible : ' + e.message.substring(0, 80) + ']';
+  }
+}
+
 // ─── Configuration ────────────────────────────────────────────────────────────
 function loadConfigFile() {
   const f = path.join(__dirname, 'config.txt');
@@ -177,25 +193,29 @@ function callGemini(messages, geminiKey) {
 }
 
 // ─── Appel Groq (Llama vision) ───────────────────────────────────────────────
-function claudeMessagesToGroqMessages(messages) {
-  return messages.map(msg => {
+async function claudeMessagesToGroqMessages(messages) {
+  const result = [];
+  for (const msg of messages) {
     const content = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }];
-    const groqContent = content.map(part => {
-      if (part.type === 'text') return { type: 'text', text: part.text };
-      if (part.type === 'image' && part.source?.type === 'base64') {
-        return { type: 'image_url', image_url: { url: `data:${part.source.media_type};base64,${part.source.data}` } };
+    const groqContent = [];
+    for (const part of content) {
+      if (part.type === 'text') {
+        groqContent.push({ type: 'text', text: part.text });
+      } else if (part.type === 'image' && part.source?.type === 'base64') {
+        groqContent.push({ type: 'image_url', image_url: { url: `data:${part.source.media_type};base64,${part.source.data}` } });
+      } else if (part.type === 'document' && part.source?.type === 'base64') {
+        // Extraction texte PDF réelle pour Groq
+        const pdfText = await extractPdfText(part.source.data);
+        groqContent.push({ type: 'text', text: `[Contenu PDF extrait automatiquement]\n${pdfText}` });
       }
-      if (part.type === 'document' && part.source?.type === 'base64') {
-        return { type: 'text', text: '[Document PDF joint — extraire les données de facturation]' };
-      }
-      return null;
-    }).filter(Boolean);
+    }
     // Si un seul élément texte, renvoyer directement la string
     const simplified = groqContent.length === 1 && groqContent[0].type === 'text'
       ? groqContent[0].text
       : groqContent;
-    return { role: msg.role, content: simplified };
-  });
+    result.push({ role: msg.role, content: simplified });
+  }
+  return result;
 }
 
 function callGroq(messages, groqKey) {
@@ -204,7 +224,7 @@ function callGroq(messages, groqKey) {
     if (!key) return reject(new Error('Clé Groq non configurée — inscrivez-vous sur groq.com et entrez votre clé gsk_...'));
     if (!isValidGroqKey(key)) return reject(new Error('Clé Groq invalide — elle doit commencer par gsk_ et provenir de console.groq.com'));
 
-    const groqMessages = claudeMessagesToGroqMessages(messages);
+    const groqMessages = await claudeMessagesToGroqMessages(messages);
     if (!JSON.stringify(groqMessages).toLowerCase().includes('json')) {
       groqMessages.unshift({
         role: 'system',
@@ -262,20 +282,25 @@ function callGroq(messages, groqKey) {
 }
 
 // ─── Appel Mistral AI ─────────────────────────────────────────────────────────
-function claudeMessagesToOpenAIMessages(messages) {
-  return messages.map(msg => {
+async function claudeMessagesToOpenAIMessages(messages) {
+  const result = [];
+  for (const msg of messages) {
     const content = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }];
-    // Mistral/OpenRouter ne supportent pas les images base64 dans tous les modèles gratuits
-    // On extrait uniquement le texte
-    const textParts = content
-      .filter(p => p.type === 'text')
-      .map(p => p.text)
-      .join('\n');
-    // Pour les images/PDFs, on ajoute une note texte
-    const hasMedia = content.some(p => p.type === 'image' || p.type === 'document');
-    const finalText = textParts + (hasMedia ? '\n[Fichier joint — analyser les données visibles dans le prompt]' : '');
-    return { role: msg.role, content: finalText };
-  });
+    const parts = [];
+    for (const part of content) {
+      if (part.type === 'text') {
+        parts.push(part.text);
+      } else if (part.type === 'document' && part.source?.type === 'base64') {
+        // Extraction texte PDF pour Mistral/OpenRouter
+        const pdfText = await extractPdfText(part.source.data);
+        parts.push(`[Contenu PDF extrait]\n${pdfText}`);
+      } else if (part.type === 'image') {
+        parts.push('[Image jointe — modèle texte uniquement]');
+      }
+    }
+    result.push({ role: msg.role, content: parts.join('\n') });
+  }
+  return result;
 }
 
 function callMistral(messages, mistralKey) {
@@ -284,7 +309,7 @@ function callMistral(messages, mistralKey) {
     if (!key) return reject(new Error('Clé Mistral non configurée — inscrivez-vous sur console.mistral.ai'));
     if (!isValidMistralKey(key)) return reject(new Error('Clé Mistral invalide'));
 
-    const mistralMessages = claudeMessagesToOpenAIMessages(messages);
+    const mistralMessages = await claudeMessagesToOpenAIMessages(messages);
     if (!JSON.stringify(mistralMessages).toLowerCase().includes('json')) {
       mistralMessages.unshift({ role: 'system', content: 'Réponds uniquement avec un objet JSON valide.' });
     }
@@ -335,7 +360,7 @@ function callOpenRouter(messages, openRouterKey) {
     if (!key) return reject(new Error('Clé OpenRouter non configurée — inscrivez-vous sur openrouter.ai'));
     if (!isValidOpenRouterKey(key)) return reject(new Error('Clé OpenRouter invalide (doit commencer par sk-or-)'));
 
-    const orMessages = claudeMessagesToOpenAIMessages(messages);
+    const orMessages = await claudeMessagesToOpenAIMessages(messages);
     if (!JSON.stringify(orMessages).toLowerCase().includes('json')) {
       orMessages.unshift({ role: 'system', content: 'Réponds uniquement avec un objet JSON valide.' });
     }
