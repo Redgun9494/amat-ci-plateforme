@@ -1782,7 +1782,9 @@ async function retryOne(i){
     const text=(data.content||[]).map(x=>x.text||'').join('');
     const clean=text.replace(/```json\n?|```/g,'').trim();
     if(!clean)throw new Error('Réponse vide');
-    const parsed=JSON.parse(clean);
+    const jsonMatch=clean.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if(!jsonMatch)throw new Error('Réponse IA non-JSON : '+clean.substring(0,80));
+    const parsed=JSON.parse(jsonMatch[0]);
     let pharmaNom=(parsed.pharmacie||'').toUpperCase().trim();
     if(/^AMAT[-\s]?CI$|^DGTCP$|^TR.?SOR/i.test(pharmaNom))pharmaNom='';
     const nouvelles=parsed.lignes||[];
@@ -2009,7 +2011,9 @@ async function extractAll(){
         const text=(data.content||[]).map(x=>x.text||'').join('');
         const clean=text.replace(/```json\n?|```/g,'').trim();
         if(!clean) throw new Error('Réponse vide');
-        const parsed=JSON.parse(clean);
+        const jsonMatch=clean.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+        if(!jsonMatch) throw new Error('Réponse IA non-JSON : '+clean.substring(0,80));
+        const parsed=JSON.parse(jsonMatch[0]);
 
         let pharmaNom=(parsed.pharmacie||'').toUpperCase().trim();
         if(/^AMAT[-\s]?CI$|^DGTCP$|^TR.?SOR/i.test(pharmaNom)) pharmaNom='';

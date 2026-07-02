@@ -187,7 +187,8 @@ function callGroq(messages, groqKey) {
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       messages: groqMessages,
       max_tokens: 8192,
-      temperature: 0.1
+      temperature: 0.1,
+      response_format: { type: 'json_object' }
     };
     const bodyStr = JSON.stringify(payload);
 
