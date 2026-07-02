@@ -1410,10 +1410,12 @@ body.dark .btn-outline{background:#111D16!important;color:#DCE7E0!important;bord
       <div style="margin-bottom:16px">
         <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:8px">Fournisseur IA</label>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="ai-btn" id="ai-auto"   onclick="setProvider('auto')">🔄 Auto · Gemini d'abord</button>
-          <button class="ai-btn" id="ai-claude" onclick="setProvider('claude')">⚡ Claude (Anthropic)</button>
-          <button class="ai-btn" id="ai-groq"   onclick="setProvider('groq')">🦙 Groq · Llama (gratuit)</button>
-          <button class="ai-btn" id="ai-gemini" onclick="setProvider('gemini')">💎 Gemini (Google · gratuit)</button>
+          <button class="ai-btn" id="ai-auto"       onclick="setProvider('auto')">🔄 Auto · Gratuit d'abord</button>
+          <button class="ai-btn" id="ai-gemini"     onclick="setProvider('gemini')">💎 Gemini (Google · gratuit)</button>
+          <button class="ai-btn" id="ai-groq"       onclick="setProvider('groq')">🦙 Groq · Llama (gratuit)</button>
+          <button class="ai-btn" id="ai-mistral"    onclick="setProvider('mistral')">🌬️ Mistral AI (gratuit)</button>
+          <button class="ai-btn" id="ai-openrouter" onclick="setProvider('openrouter')">🌐 OpenRouter (gratuit)</button>
+          <button class="ai-btn" id="ai-claude"     onclick="setProvider('claude')">⚡ Claude (Anthropic)</button>
         </div>
         <div id="ai-mode-hint" style="margin-top:8px;font-size:11px;color:var(--text3)"></div>
       </div>
@@ -1447,6 +1449,38 @@ body.dark .btn-outline{background:#111D16!important;color:#DCE7E0!important;bord
         <p style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">
           <i class="fa fa-external-link-alt" style="margin-right:4px"></i>
           Clé gratuite : <strong>aistudio.google.com/apikey</strong> → "Create API key" → sans carte bancaire
+        </p>
+      </div>
+      <!-- Clé Mistral -->
+      <div id="mistral-key-section" style="display:none">
+        <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:8px;margin-top:14px">
+          <i class="fa fa-key" style="margin-right:4px;color:#FF7000"></i>Clé API Mistral AI (gratuit)
+        </label>
+        <div class="cfg-row">
+          <input type="password" id="mistral-key-input" placeholder="Clé Mistral AI (console.mistral.ai)…" autocomplete="off">
+          <button class="btn btn-outline" onclick="testMistralKey()"><i class="fa fa-plug"></i> Tester</button>
+          <button class="btn btn-green"   onclick="saveMistralKey()"><i class="fa fa-check"></i> Enregistrer</button>
+        </div>
+        <div class="proxy-status" id="mistral-status" style="display:none"></div>
+        <p style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">
+          <i class="fa fa-external-link-alt" style="margin-right:4px"></i>
+          Clé gratuite : <strong>console.mistral.ai</strong> → "Create new key" → modèle mistral-small
+        </p>
+      </div>
+      <!-- Clé OpenRouter -->
+      <div id="openrouter-key-section" style="display:none">
+        <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:8px;margin-top:14px">
+          <i class="fa fa-key" style="margin-right:4px;color:#6B21A8"></i>Clé API OpenRouter (modèles gratuits)
+        </label>
+        <div class="cfg-row">
+          <input type="password" id="openrouter-key-input" placeholder="sk-or-… (openrouter.ai/keys)" autocomplete="off">
+          <button class="btn btn-outline" onclick="testOpenRouterKey()"><i class="fa fa-plug"></i> Tester</button>
+          <button class="btn btn-green"   onclick="saveOpenRouterKey()"><i class="fa fa-check"></i> Enregistrer</button>
+        </div>
+        <div class="proxy-status" id="openrouter-status" style="display:none"></div>
+        <p style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">
+          <i class="fa fa-external-link-alt" style="margin-right:4px"></i>
+          Clé gratuite : <strong>openrouter.ai/keys</strong> → "Create Key" → modèles gratuits disponibles
         </p>
       </div>
     </div>
@@ -1914,7 +1948,7 @@ async function retryOne(i){
   try{
     const resp=await fetch(proxyUrl+'/analyser',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({max_tokens:8096,provider:getProvider(),gemini_key:getGeminiKey(),groq_key:getGroqKey(),messages:[{role:'user',content:[
+      body:JSON.stringify({max_tokens:8096,provider:getProvider(),gemini_key:getGeminiKey(),groq_key:getGroqKey(),mistral_key:getMistralKey(),openrouter_key:getOpenRouterKey(),messages:[{role:'user',content:[
         (entry.type==='application/pdf'
           ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}}
           :{type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}}),
@@ -2138,6 +2172,8 @@ async function extractAll(){
             provider:getProvider(),
             gemini_key:getGeminiKey(),
             groq_key:getGroqKey(),
+            mistral_key:getMistralKey(),
+            openrouter_key:getOpenRouterKey(),
             messages:[{role:'user',content:[
               (entry.type==='application/pdf'
                 ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}}
@@ -2967,30 +3003,35 @@ function testProxy(){
 
 
 // ═══ FOURNISSEUR IA ═══════════════════════════════════════════════════════════
-function getProvider(){ return localStorage.getItem('amat_provider')||'gemini'; }
-function getGeminiKey(){ return localStorage.getItem('amat_gemini_key')||''; }
-function getGroqKey(){   return localStorage.getItem('amat_groq_key')||''; }
+function getProvider(){      return localStorage.getItem('amat_provider')||'gemini'; }
+function getGeminiKey(){     return localStorage.getItem('amat_gemini_key')||''; }
+function getGroqKey(){       return localStorage.getItem('amat_groq_key')||''; }
+function getMistralKey(){    return localStorage.getItem('amat_mistral_key')||''; }
+function getOpenRouterKey(){ return localStorage.getItem('amat_openrouter_key')||''; }
 
 function setProvider(p){
   localStorage.setItem('amat_provider',p);
-  const colorMap={gemini:'selected-gemini',groq:'selected-groq'};
-  ['auto','claude','groq','gemini'].forEach(id=>{
+  const colorMap={gemini:'selected-gemini',groq:'selected-groq',mistral:'selected-groq',openrouter:'selected'};
+  ['auto','claude','groq','gemini','mistral','openrouter'].forEach(id=>{
     const b=document.getElementById('ai-'+id);if(!b)return;
     b.className='ai-btn'+(p===id?(' '+(colorMap[id]||'selected')):'');
   });
   const hints={
-    auto:'Mode automatique : Gemini gratuit → Claude → Groq selon les clés configurées.',
+    auto:'Mode automatique : Gemini → Groq → Mistral → OpenRouter → Claude selon les clés configurées.',
     claude:'Claude uniquement — nécessite ANTHROPIC_API_KEY configurée sur Render.',
     groq:'Groq (Llama 4 Scout) — gratuit avec votre clé console.groq.com.',
-    gemini:'Gemini recommandé — gratuit avec votre clé Google AI Studio.'
+    gemini:'Gemini recommandé — gratuit avec votre clé Google AI Studio.',
+    mistral:'Mistral AI (mistral-small) — gratuit avec votre clé console.mistral.ai.',
+    openrouter:'OpenRouter — accès à des dizaines de modèles gratuits.'
   };
   const h=document.getElementById('ai-mode-hint');if(h)h.textContent=hints[p]||'';
   // Afficher/masquer sections de clés
-  const gs=document.getElementById('gemini-key-section');
-  const grs=document.getElementById('groq-key-section');
-  if(gs) gs.style.display=(p==='claude'||p==='groq')?'none':'';
-  if(grs)grs.style.display=(p==='claude'||p==='gemini')?'none':'';
-  toast('IA : '+{auto:'Automatique',claude:'Claude',groq:'Groq',gemini:'Gemini'}[p],'success',1500);
+  const showAll=(p==='auto');
+  document.getElementById('gemini-key-section')?.style && (document.getElementById('gemini-key-section').style.display=(showAll||p==='gemini')?'':'none');
+  document.getElementById('groq-key-section')?.style && (document.getElementById('groq-key-section').style.display=(showAll||p==='groq')?'':'none');
+  document.getElementById('mistral-key-section')?.style && (document.getElementById('mistral-key-section').style.display=(showAll||p==='mistral')?'':'none');
+  document.getElementById('openrouter-key-section')?.style && (document.getElementById('openrouter-key-section').style.display=(showAll||p==='openrouter')?'':'none');
+  toast('IA : '+{auto:'Automatique',claude:'Claude',groq:'Groq',gemini:'Gemini',mistral:'Mistral',openrouter:'OpenRouter'}[p],'success',1500);
 }
 
 function saveGroqKey(){
@@ -3064,18 +3105,90 @@ function testGeminiKey(){
   });
 }
 
+function saveMistralKey(){
+  const k=(document.getElementById('mistral-key-input')?.value||'').trim();
+  if(!k){toast('Clé vide','error');return;}
+  if(k.length<20){toast('Clé Mistral invalide (trop courte)','error');return;}
+  localStorage.setItem('amat_mistral_key',k);
+  const s=document.getElementById('mistral-status');
+  if(s){s.style.display='block';s.textContent='✅ Clé enregistrée localement';s.style.color='#1E7A3A';}
+  toast('Clé Mistral enregistrée','success');
+}
+
+function testMistralKey(){
+  const k=(document.getElementById('mistral-key-input')?.value||'').trim()||getMistralKey();
+  if(!k){toast('Entrez d\'abord la clé Mistral','error');return;}
+  const s=document.getElementById('mistral-status');
+  if(s){s.style.display='block';s.textContent='Test en cours…';s.style.color='var(--text3)';}
+  const proxyUrl=(localStorage.getItem('amat_proxy')||window.location.origin).replace(/\/$/,'');
+  fetch(proxyUrl+'/analyser',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({provider:'mistral',mistral_key:k,messages:[{role:'user',content:'Réponds uniquement avec ce JSON valide : {"ok":true}'}]})
+  }).then(r=>r.json()).then(d=>{
+    const txt=d.content?.[0]?.text||'';
+    if(txt&&!d.error){
+      if(s){s.textContent='✅ Clé valide — Mistral répond';s.style.color='#1E7A3A';}
+      toast('Mistral OK !','success');
+    } else {
+      const err=d.error?.message||JSON.stringify(d).substring(0,80);
+      if(s){s.textContent='❌ '+err;s.style.color='#B33';}
+      toast('Erreur Mistral','error');
+    }
+  }).catch(e=>{
+    if(s){s.textContent='Erreur réseau : '+e.message;s.style.color='#B33';}
+    toast('Mistral inaccessible','error');
+  });
+}
+
+function saveOpenRouterKey(){
+  const k=(document.getElementById('openrouter-key-input')?.value||'').trim();
+  if(!k){toast('Clé vide','error');return;}
+  if(!/^sk-or-[0-9A-Za-z_-]{20,}$/.test(k)){toast('Clé OpenRouter invalide (doit commencer par sk-or-)','error');return;}
+  localStorage.setItem('amat_openrouter_key',k);
+  const s=document.getElementById('openrouter-status');
+  if(s){s.style.display='block';s.textContent='✅ Clé enregistrée localement';s.style.color='#1E7A3A';}
+  toast('Clé OpenRouter enregistrée','success');
+}
+
+function testOpenRouterKey(){
+  const k=(document.getElementById('openrouter-key-input')?.value||'').trim()||getOpenRouterKey();
+  if(!k){toast('Entrez d\'abord la clé OpenRouter','error');return;}
+  const s=document.getElementById('openrouter-status');
+  if(s){s.style.display='block';s.textContent='Test en cours…';s.style.color='var(--text3)';}
+  const proxyUrl=(localStorage.getItem('amat_proxy')||window.location.origin).replace(/\/$/,'');
+  fetch(proxyUrl+'/analyser',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({provider:'openrouter',openrouter_key:k,messages:[{role:'user',content:'Réponds uniquement avec ce JSON valide : {"ok":true}'}]})
+  }).then(r=>r.json()).then(d=>{
+    const txt=d.content?.[0]?.text||'';
+    if(txt&&!d.error){
+      if(s){s.textContent='✅ Clé valide — OpenRouter répond';s.style.color='#1E7A3A';}
+      toast('OpenRouter OK !','success');
+    } else {
+      const err=d.error?.message||JSON.stringify(d).substring(0,80);
+      if(s){s.textContent='❌ '+err;s.style.color='#B33';}
+      toast('Erreur OpenRouter','error');
+    }
+  }).catch(e=>{
+    if(s){s.textContent='Erreur réseau : '+e.message;s.style.color='#B33';}
+    toast('OpenRouter inaccessible','error');
+  });
+}
+
 function _initProviderUI(){
   const p=getProvider();
-  const colorMap={gemini:'selected-gemini',groq:'selected-groq'};
-  ['auto','claude','groq','gemini'].forEach(id=>{
+  const colorMap={gemini:'selected-gemini',groq:'selected-groq',mistral:'selected-groq',openrouter:'selected'};
+  ['auto','claude','groq','gemini','mistral','openrouter'].forEach(id=>{
     const b=document.getElementById('ai-'+id);if(!b)return;
     b.className='ai-btn'+(p===id?(' '+(colorMap[id]||'selected')):'');
   });
   const hints={
-    auto:'Mode automatique : Gemini gratuit → Claude → Groq selon les clés configurées.',
+    auto:'Mode automatique : Gemini → Groq → Mistral → OpenRouter → Claude selon les clés configurées.',
     claude:'Claude uniquement — nécessite ANTHROPIC_API_KEY sur Render.',
     groq:'Groq (Llama 4 Scout) — gratuit avec votre clé console.groq.com.',
-    gemini:'Gemini recommandé — gratuit avec votre clé Google AI Studio.'
+    gemini:'Gemini recommandé — gratuit avec votre clé Google AI Studio.',
+    mistral:'Mistral AI (mistral-small) — gratuit avec votre clé console.mistral.ai.',
+    openrouter:'OpenRouter — accès à des dizaines de modèles gratuits (sk-or-...).'
   };
   const h=document.getElementById('ai-mode-hint');if(h)h.textContent=hints[p]||'';
   const gs=document.getElementById('gemini-key-section');

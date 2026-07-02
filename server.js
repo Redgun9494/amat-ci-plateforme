@@ -1,11 +1,13 @@
 /**
  * AMAT-CI — Serveur cloud (Render.com)
  * Variables d'environnement :
- *   ANTHROPIC_API_KEY = votre clé sk-ant-api03-...  (Claude)
- *   GEMINI_API_KEY    = votre clé AIza...            (Gemini, gratuit — format AIza uniquement)
- *   GROQ_API_KEY      = votre clé gsk_...            (Groq/Llama, gratuit)
+ *   ANTHROPIC_API_KEY    = votre clé sk-ant-api03-...  (Claude)
+ *   GEMINI_API_KEY       = votre clé AIza...            (Gemini, gratuit)
+ *   GROQ_API_KEY         = votre clé gsk_...            (Groq/Llama, gratuit)
+ *   MISTRAL_API_KEY      = votre clé sur console.mistral.ai  (Mistral, gratuit)
+ *   OPENROUTER_API_KEY   = votre clé sk-or-...          (OpenRouter, modèles gratuits)
  *
- * Priorité auto : Gemini → Claude → Groq
+ * Priorité auto : Gemini → Groq → Mistral → OpenRouter → Claude
  */
 
 const http  = require('http');
@@ -26,17 +28,24 @@ function loadConfigFile() {
 }
 
 const config = loadConfigFile();
-let ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || config.ANTHROPIC_API_KEY || '';
-let GEMINI_API_KEY    = process.env.GEMINI_API_KEY    || config.GEMINI_API_KEY    || '';
-let GROQ_API_KEY      = process.env.GROQ_API_KEY      || config.GROQ_API_KEY      || '';
+let ANTHROPIC_API_KEY  = process.env.ANTHROPIC_API_KEY  || config.ANTHROPIC_API_KEY  || '';
+let GEMINI_API_KEY     = process.env.GEMINI_API_KEY     || config.GEMINI_API_KEY     || '';
+let GROQ_API_KEY       = process.env.GROQ_API_KEY       || config.GROQ_API_KEY       || '';
+let MISTRAL_API_KEY    = process.env.MISTRAL_API_KEY    || config.MISTRAL_API_KEY    || '';
+let OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || config.OPENROUTER_API_KEY || '';
 const PORT = parseInt(process.env.PORT || config.PORT) || 3000;
 
 function isValidGeminiKey(key) {
   return /^(AIza[0-9A-Za-z_-]{20,}|AQ\.[0-9A-Za-z_-]{20,})$/.test(String(key || '').trim());
 }
-
 function isValidGroqKey(key) {
   return /^gsk_[0-9A-Za-z_-]{20,}$/.test(String(key || '').trim());
+}
+function isValidMistralKey(key) {
+  return String(key || '').trim().length >= 20;
+}
+function isValidOpenRouterKey(key) {
+  return /^sk-or-[0-9A-Za-z_-]{20,}$/.test(String(key || '').trim());
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -252,44 +261,165 @@ function callGroq(messages, groqKey) {
   });
 }
 
+// ─── Appel Mistral AI ─────────────────────────────────────────────────────────
+function claudeMessagesToOpenAIMessages(messages) {
+  return messages.map(msg => {
+    const content = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }];
+    // Mistral/OpenRouter ne supportent pas les images base64 dans tous les modèles gratuits
+    // On extrait uniquement le texte
+    const textParts = content
+      .filter(p => p.type === 'text')
+      .map(p => p.text)
+      .join('\n');
+    // Pour les images/PDFs, on ajoute une note texte
+    const hasMedia = content.some(p => p.type === 'image' || p.type === 'document');
+    const finalText = textParts + (hasMedia ? '\n[Fichier joint — analyser les données visibles dans le prompt]' : '');
+    return { role: msg.role, content: finalText };
+  });
+}
+
+function callMistral(messages, mistralKey) {
+  return new Promise((resolve, reject) => {
+    const key = String(mistralKey || MISTRAL_API_KEY || '').trim();
+    if (!key) return reject(new Error('Clé Mistral non configurée — inscrivez-vous sur console.mistral.ai'));
+    if (!isValidMistralKey(key)) return reject(new Error('Clé Mistral invalide'));
+
+    const mistralMessages = claudeMessagesToOpenAIMessages(messages);
+    if (!JSON.stringify(mistralMessages).toLowerCase().includes('json')) {
+      mistralMessages.unshift({ role: 'system', content: 'Réponds uniquement avec un objet JSON valide.' });
+    }
+    const payload = {
+      model: 'mistral-small-latest',
+      messages: mistralMessages,
+      max_tokens: 8192,
+      temperature: 0.1,
+      response_format: { type: 'json_object' }
+    };
+    const bodyStr = JSON.stringify(payload);
+
+    const req = https.request({
+      hostname: 'api.mistral.ai',
+      path: '/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+        'Content-Length': Buffer.byteLength(bodyStr),
+      },
+    }, resp => {
+      let data = '';
+      resp.on('data', c => (data += c));
+      resp.on('end', () => {
+        try {
+          const r = JSON.parse(data);
+          if (resp.statusCode !== 200) {
+            const errMsg = r.message || r.error?.message || JSON.stringify(r).substring(0, 200);
+            return resolve({ status: resp.statusCode, body: { error: { message: 'Mistral: ' + errMsg } } });
+          }
+          const text = r.choices?.[0]?.message?.content || '';
+          resolve({ status: 200, body: { id: 'mistral-' + Date.now(), type: 'message', role: 'assistant',
+            model: 'mistral-small-latest', content: [{ type: 'text', text }], stop_reason: 'end_turn', _provider: 'mistral' } });
+        } catch (e) { reject(new Error('Réponse Mistral invalide: ' + e.message)); }
+      });
+    });
+    req.on('error', reject);
+    req.write(bodyStr);
+    req.end();
+  });
+}
+
+// ─── Appel OpenRouter (modèles gratuits) ─────────────────────────────────────
+function callOpenRouter(messages, openRouterKey) {
+  return new Promise((resolve, reject) => {
+    const key = String(openRouterKey || OPENROUTER_API_KEY || '').trim();
+    if (!key) return reject(new Error('Clé OpenRouter non configurée — inscrivez-vous sur openrouter.ai'));
+    if (!isValidOpenRouterKey(key)) return reject(new Error('Clé OpenRouter invalide (doit commencer par sk-or-)'));
+
+    const orMessages = claudeMessagesToOpenAIMessages(messages);
+    if (!JSON.stringify(orMessages).toLowerCase().includes('json')) {
+      orMessages.unshift({ role: 'system', content: 'Réponds uniquement avec un objet JSON valide.' });
+    }
+    const payload = {
+      model: 'meta-llama/llama-3.1-8b-instruct:free',
+      messages: orMessages,
+      max_tokens: 8192,
+      temperature: 0.1,
+    };
+    const bodyStr = JSON.stringify(payload);
+
+    const req = https.request({
+      hostname: 'openrouter.ai',
+      path: '/api/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+        'HTTP-Referer': 'https://amat-ci-plateforme.onrender.com',
+        'X-Title': 'AMAT-CI',
+        'Content-Length': Buffer.byteLength(bodyStr),
+      },
+    }, resp => {
+      let data = '';
+      resp.on('data', c => (data += c));
+      resp.on('end', () => {
+        try {
+          const r = JSON.parse(data);
+          if (resp.statusCode !== 200) {
+            const errMsg = r.error?.message || JSON.stringify(r).substring(0, 200);
+            return resolve({ status: resp.statusCode, body: { error: { message: 'OpenRouter: ' + errMsg } } });
+          }
+          const text = r.choices?.[0]?.message?.content || '';
+          resolve({ status: 200, body: { id: 'openrouter-' + Date.now(), type: 'message', role: 'assistant',
+            model: 'llama-3.1-8b', content: [{ type: 'text', text }], stop_reason: 'end_turn', _provider: 'openrouter' } });
+        } catch (e) { reject(new Error('Réponse OpenRouter invalide: ' + e.message)); }
+      });
+    });
+    req.on('error', reject);
+    req.write(bodyStr);
+    req.end();
+  });
+}
+
 // ─── Sélection automatique du fournisseur ────────────────────────────────────
-async function callAI(messages, provider, geminiKey, groqKey) {
-  // provider = 'auto' | 'claude' | 'gemini' | 'groq'
-  const hasAnthropic = !!ANTHROPIC_API_KEY;
-  const hasGemini    = isValidGeminiKey(geminiKey || GEMINI_API_KEY);
-  const hasGroq      = isValidGroqKey(groqKey || GROQ_API_KEY);
+async function callAI(messages, provider, geminiKey, groqKey, mistralKey, openRouterKey) {
+  const hasAnthropic   = !!ANTHROPIC_API_KEY;
+  const hasGemini      = isValidGeminiKey(geminiKey || GEMINI_API_KEY);
+  const hasGroq        = isValidGroqKey(groqKey || GROQ_API_KEY);
+  const hasMistral     = isValidMistralKey(mistralKey || MISTRAL_API_KEY);
+  const hasOpenRouter  = isValidOpenRouterKey(openRouterKey || OPENROUTER_API_KEY);
 
-  if (provider === 'gemini') return callGemini(messages, geminiKey);
-  if (provider === 'claude') return callAnthropic({ model: 'claude-sonnet-4-6', max_tokens: 8096, messages });
-  if (provider === 'groq')   return callGroq(messages, groqKey);
+  if (provider === 'gemini')     return callGemini(messages, geminiKey);
+  if (provider === 'claude')     return callAnthropic({ model: 'claude-sonnet-4-6', max_tokens: 8096, messages });
+  if (provider === 'groq')       return callGroq(messages, groqKey);
+  if (provider === 'mistral')    return callMistral(messages, mistralKey);
+  if (provider === 'openrouter') return callOpenRouter(messages, openRouterKey);
 
-  // Auto : Gemini gratuit en priorité, puis Claude, puis Groq.
-  if (hasGemini) {
-    try { return await callGemini(messages, geminiKey); }
-    catch (e) {
-      if (hasAnthropic) {
-        console.log('[Auto] Gemini échoué, bascule Claude:', e.message);
-        return callAnthropic({ model: 'claude-sonnet-4-6', max_tokens: 8096, messages });
-      }
-      if (hasGroq) {
-        console.log('[Auto] Gemini échoué, bascule Groq:', e.message);
-        return callGroq(messages, groqKey);
-      }
-      throw e;
+  // Auto : Gemini → Groq → Mistral → OpenRouter → Claude
+  const freeProviders = [
+    hasGemini     && (() => callGemini(messages, geminiKey)),
+    hasGroq       && (() => callGroq(messages, groqKey)),
+    hasMistral    && (() => callMistral(messages, mistralKey)),
+    hasOpenRouter && (() => callOpenRouter(messages, openRouterKey)),
+    hasAnthropic  && (() => callAnthropic({ model: 'claude-sonnet-4-6', max_tokens: 8096, messages })),
+  ].filter(Boolean);
+
+  if (freeProviders.length === 0)
+    throw new Error('Aucune clé API configurée — ajoutez GEMINI_API_KEY (gratuit sur aistudio.google.com/apikey) dans Render ou dans la plateforme');
+
+  let lastError;
+  for (const callFn of freeProviders) {
+    try {
+      const result = await callFn();
+      if (result.status === 200) return result;
+      // Erreur HTTP non fatale : essayer le suivant
+      lastError = new Error(result.body?.error?.message || 'Erreur HTTP ' + result.status);
+      console.log('[Auto] Fournisseur échoué, bascule suivant:', lastError.message);
+    } catch (e) {
+      lastError = e;
+      console.log('[Auto] Fournisseur erreur, bascule suivant:', e.message);
     }
   }
-  if (hasAnthropic) {
-    try { return await callAnthropic({ model: 'claude-sonnet-4-6', max_tokens: 8096, messages }); }
-    catch (e) {
-      if (hasGroq) {
-        console.log('[Auto] Claude échoué, bascule Groq:', e.message);
-        return callGroq(messages, groqKey);
-      }
-      throw e;
-    }
-  }
-  if (hasGroq)   return callGroq(messages, groqKey);
-  throw new Error('Aucune clé API configurée — ajoutez GEMINI_API_KEY (gratuit sur aistudio.google.com/apikey) dans Render ou dans la plateforme');
+  throw lastError;
 }
 
 // ─── Serveur ──────────────────────────────────────────────────────────────────
@@ -302,14 +432,16 @@ const server = http.createServer(async (req, res) => {
 
   // Santé
   if (req.method === 'GET' && req.url === '/health') {
-    const hasC = !!ANTHROPIC_API_KEY, hasG = isValidGeminiKey(GEMINI_API_KEY), hasGr = isValidGroqKey(GROQ_API_KEY);
-    const provider = hasG ? 'gemini' : hasC ? 'claude' : hasGr ? 'groq' : 'none';
+    const hasC  = !!ANTHROPIC_API_KEY;
+    const hasG  = isValidGeminiKey(GEMINI_API_KEY);
+    const hasGr = isValidGroqKey(GROQ_API_KEY);
+    const hasM  = isValidMistralKey(MISTRAL_API_KEY);
+    const hasOR = isValidOpenRouterKey(OPENROUTER_API_KEY);
+    const provider = hasG ? 'gemini' : hasGr ? 'groq' : hasM ? 'mistral' : hasOR ? 'openrouter' : hasC ? 'claude' : 'none';
     return sendJSON(res, 200, {
       status: 'ok',
-      apiKeyConfigured: !!(hasC || hasG || hasGr),
-      claudeKey: hasC,
-      geminiKey: hasG,
-      groqKey: hasGr,
+      apiKeyConfigured: !!(hasC || hasG || hasGr || hasM || hasOR),
+      claudeKey: hasC, geminiKey: hasG, groqKey: hasGr, mistralKey: hasM, openRouterKey: hasOR,
       provider
     });
   }
@@ -341,16 +473,22 @@ const server = http.createServer(async (req, res) => {
       if (!body.messages || !Array.isArray(body.messages))
         return sendJSON(res, 400, { error: "Champ 'messages' requis" });
 
-      const provider  = body.provider   || 'auto';
-      const geminiKey = body.gemini_key  || '';
-      const groqKey   = body.groq_key    || '';
+      const provider       = body.provider        || 'auto';
+      const geminiKey      = body.gemini_key       || '';
+      const groqKey        = body.groq_key         || '';
+      const mistralKey     = body.mistral_key      || '';
+      const openRouterKey  = body.openrouter_key   || '';
 
       const providerLabel = provider === 'auto'
-        ? (isValidGeminiKey(geminiKey || GEMINI_API_KEY) ? 'Gemini (auto)' : ANTHROPIC_API_KEY ? 'Claude (auto)' : isValidGroqKey(groqKey || GROQ_API_KEY) ? 'Groq (auto)' : 'Aucune clé')
+        ? (isValidGeminiKey(geminiKey || GEMINI_API_KEY) ? 'Gemini (auto)'
+          : isValidGroqKey(groqKey || GROQ_API_KEY)      ? 'Groq (auto)'
+          : isValidMistralKey(mistralKey || MISTRAL_API_KEY) ? 'Mistral (auto)'
+          : isValidOpenRouterKey(openRouterKey || OPENROUTER_API_KEY) ? 'OpenRouter (auto)'
+          : ANTHROPIC_API_KEY ? 'Claude (auto)' : 'Aucune clé')
         : provider;
       console.log(`[${new Date().toLocaleTimeString('fr-FR')}] Analyse — ${providerLabel}`);
 
-      const result = await callAI(body.messages, provider, geminiKey, groqKey);
+      const result = await callAI(body.messages, provider, geminiKey, groqKey, mistralKey, openRouterKey);
       if (result.status !== 200)
         console.error('[IA] Erreur', result.status, JSON.stringify(result.body).substring(0, 200));
       return sendJSON(res, result.status, result.body);
@@ -364,9 +502,11 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && req.url === '/set-key') {
     try {
       const body = await readBody(req);
-      if (body.key)    { ANTHROPIC_API_KEY = body.key.trim(); }
-      if (body.gemini) { GEMINI_API_KEY    = body.gemini.trim(); }
-      if (body.groq)   { GROQ_API_KEY      = body.groq.trim(); }
+      if (body.key)        { ANTHROPIC_API_KEY  = body.key.trim(); }
+      if (body.gemini)     { GEMINI_API_KEY     = body.gemini.trim(); }
+      if (body.groq)       { GROQ_API_KEY       = body.groq.trim(); }
+      if (body.mistral)    { MISTRAL_API_KEY    = body.mistral.trim(); }
+      if (body.openrouter) { OPENROUTER_API_KEY = body.openrouter.trim(); }
       return sendJSON(res, 200, { ok: true, note: 'Clé(s) active(s) pour cette session.' });
     } catch (err) {
       return sendJSON(res, 500, { error: err.message });
@@ -377,15 +517,22 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  const hasC = !!ANTHROPIC_API_KEY, hasG = isValidGeminiKey(GEMINI_API_KEY), hasGr = isValidGroqKey(GROQ_API_KEY);
-  const modeStr = hasG && hasC ? 'Gemini → Claude (fallback)' : hasG && hasGr ? 'Gemini → Groq (fallback)' : hasG ? 'Gemini gratuit' : hasC ? 'Claude uniquement' : hasGr ? 'Groq uniquement' : '⚠ AUCUNE CLÉ';
+  const hasC  = !!ANTHROPIC_API_KEY;
+  const hasG  = isValidGeminiKey(GEMINI_API_KEY);
+  const hasGr = isValidGroqKey(GROQ_API_KEY);
+  const hasM  = isValidMistralKey(MISTRAL_API_KEY);
+  const hasOR = isValidOpenRouterKey(OPENROUTER_API_KEY);
+  const nbFree = [hasG, hasGr, hasM, hasOR].filter(Boolean).length;
+  const modeStr = nbFree > 1 ? `Auto (${nbFree} APIs gratuites disponibles)` : hasG ? 'Gemini gratuit' : hasGr ? 'Groq gratuit' : hasM ? 'Mistral gratuit' : hasOR ? 'OpenRouter gratuit' : hasC ? 'Claude uniquement' : '⚠ AUCUNE CLÉ';
   console.log('\n╔══════════════════════════════════════════════════════════╗');
   console.log('║              AMAT-CI — Plateforme active                 ║');
   console.log('╠══════════════════════════════════════════════════════════╣');
-  console.log(`║  Port           : ${String(PORT).padEnd(40)}║`);
-  console.log(`║  Claude (Ant.)  : ${(hasC  ? '✅ configuré' : '❌ ANTHROPIC_API_KEY manquante').padEnd(40)}║`);
-  console.log(`║  Groq  (Llama)  : ${(hasGr ? '✅ configuré' : '❌ GROQ_API_KEY manquante').padEnd(40)}║`);
-  console.log(`║  Gemini (Google): ${(hasG  ? '✅ configuré' : '❌ GEMINI_API_KEY manquante').padEnd(40)}║`);
-  console.log(`║  Mode           : ${modeStr.padEnd(40)}║`);
+  console.log(`║  Port              : ${String(PORT).padEnd(37)}║`);
+  console.log(`║  Gemini (Google)   : ${(hasG  ? '✅ configuré' : '❌ manquant').padEnd(37)}║`);
+  console.log(`║  Groq  (Llama)     : ${(hasGr ? '✅ configuré' : '❌ manquant').padEnd(37)}║`);
+  console.log(`║  Mistral AI        : ${(hasM  ? '✅ configuré' : '❌ manquant').padEnd(37)}║`);
+  console.log(`║  OpenRouter        : ${(hasOR ? '✅ configuré' : '❌ manquant').padEnd(37)}║`);
+  console.log(`║  Claude (Ant.)     : ${(hasC  ? '✅ configuré' : '❌ manquant').padEnd(37)}║`);
+  console.log(`║  Mode              : ${modeStr.padEnd(37)}║`);
   console.log('╚══════════════════════════════════════════════════════════╝\n');
 });
