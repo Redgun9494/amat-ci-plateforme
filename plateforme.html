@@ -724,6 +724,150 @@ body.dark .history-item{background:#132818;border-color:#1E4030}
 .ai-btn.selected-groq{border-color:#F55036;background:#F55036;color:#fff}
 body.dark .ai-btn{background:#0E1D14;border-color:#1E4030;color:var(--text3)}
 body.dark .ai-btn.selected{background:var(--g2);color:#fff}
+
+/* === AMAT-CI DESIGN 2.0 ===================================================== */
+*{letter-spacing:0!important}
+:root{
+  --g1:#0F5132;--g2:#157347;--g3:#2A9D62;--g4:#7BC89C;
+  --orange:#C76A16;--orange2:#E9A33A;
+  --pale:#EFF7F2;--pale2:#F7FAF8;
+  --border:#D9E5DE;--border2:#E8EFEA;
+  --text1:#10251B;--text2:#31443A;--text3:#66756D;--text4:#8B9992;
+  --blue:#245B8F;--surface:#FFFFFF;--surface2:#F8FBF9;--surface3:#F1F6F3;
+  --sh1:0 1px 2px rgba(16,37,27,.06),0 1px 8px rgba(16,37,27,.05);
+  --sh2:0 8px 24px rgba(16,37,27,.09);
+  --sh3:0 18px 48px rgba(16,37,27,.14);
+  --r8:8px;--r12:8px;--r16:8px;--r24:8px;
+}
+body{background:#F3F7F4;color:var(--text1)}
+body::before{
+  background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,0) 320px),
+             linear-gradient(135deg,#F4F7F5 0%,#EDF4F0 52%,#F9FAF7 100%);
+  animation:none;
+}
+.topbar{
+  min-height:78px;padding:10px 26px;background:rgba(255,255,255,.94);
+  border-bottom:1px solid var(--border2);
+  box-shadow:0 1px 0 rgba(16,37,27,.04),0 10px 30px rgba(16,37,27,.06);
+}
+.logo-amat svg{width:292px;height:auto;display:block}
+.topbar-divider{height:44px;background:var(--border2);margin:0 12px}
+.topbar-text h1{font-size:16px;color:var(--text1);font-weight:800}
+.topbar-text p{font-size:12px;color:var(--text3)}
+.topbar-right button[onclick="openGSearch()"]{
+  background:var(--surface2)!important;border:1px solid var(--border)!important;
+  color:var(--text2)!important;border-radius:999px!important;min-height:34px;
+}
+.topbar-badge{background:#ECF8F0;border-color:#C7E6D2;border-radius:999px;font-weight:700}
+.stepper{
+  justify-content:flex-start;max-width:1280px;margin:14px auto 0;padding:8px;
+  border:1px solid var(--border2);border-radius:8px;background:rgba(255,255,255,.88);
+  box-shadow:var(--sh1);position:sticky;top:78px;z-index:80;
+}
+.step{border:0;border-radius:6px;padding:10px 14px;color:var(--text3);min-height:42px}
+.step:hover:not(.active){background:var(--surface3);color:var(--text1)}
+.step.active{background:#EAF6EF;color:var(--g1);border:0;box-shadow:inset 0 0 0 1px #C9E8D4}
+.step.done{color:var(--g2)}
+.step-num{width:24px;height:24px;border-radius:6px;background:#EEF2EF}
+.step.active .step-num{background:var(--g2);box-shadow:none}
+.step.done .step-num{background:#D7F0E1;color:var(--g1)}
+.step-sep{display:none}
+.step-badge{border-radius:999px;background:var(--blue)}
+.kpi-bar{
+  max-width:1280px;margin:16px auto 0;border:1px solid var(--border2);
+  border-radius:8px;overflow:hidden;background:var(--surface);box-shadow:var(--sh1);
+}
+.kpi-card{padding:16px 20px;background:var(--surface)}
+.kpi-card:hover{background:var(--surface2)}
+.kpi-card::after{height:2px;background:var(--g2)}
+.kpi-icon{width:38px;height:38px;border-radius:8px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.6)}
+.kpi-val{font-size:20px;color:var(--text1)}
+.kpi-lbl{font-size:11px;color:var(--text3)}
+.main{max-width:1280px;margin:18px auto 36px;gap:16px}
+.card{
+  background:var(--surface);border:1px solid var(--border2);border-radius:8px;
+  box-shadow:var(--sh1);padding:22px;
+}
+.card:hover{box-shadow:var(--sh1)}
+.card-title{
+  color:var(--text2);font-size:12px;margin-bottom:14px;
+  border-bottom:1px solid var(--border2);padding-bottom:10px;
+}
+.card-title i{color:var(--blue)}
+.drop-zone{
+  background:var(--surface2);border:1.5px dashed #9CC9AD;border-radius:8px;padding:48px 24px;
+}
+.drop-zone:hover,.drop-zone.over{
+  background:#EFF8F3;border-color:var(--g2);transform:none;box-shadow:var(--sh2);
+}
+.drop-zone .icon-upload{border-radius:8px;background:#E5F4EB;box-shadow:none}
+.fmt-badge{border-radius:6px;background:#fff;color:var(--text2)}
+.fq-item{border-radius:8px;background:var(--surface2)}
+.btn{border-radius:6px;min-height:38px;box-shadow:none!important}
+.btn-green,.btn-primary{background:var(--g2)!important;color:#fff}
+.btn-green:hover,.btn-primary:hover{background:var(--g1)!important;transform:translateY(-1px)}
+.btn-outline{
+  background:var(--surface)!important;color:var(--text2)!important;border:1px solid var(--border)!important;
+}
+.btn-outline:hover{background:var(--surface3)!important;border-color:#BFD2C6!important}
+.btn-orange{background:var(--orange)!important;color:#fff}
+.tf-btn,.ai-btn{border-radius:6px;background:var(--surface);border:1px solid var(--border)}
+.tf-btn.selected{background:var(--g2);border-color:var(--g2);box-shadow:none}
+.ai-btn.selected,.ai-btn.selected-gemini{background:var(--blue);border-color:var(--blue)}
+.ai-btn.selected-groq{background:var(--orange);border-color:var(--orange)}
+.tbl-wrap{border-radius:8px;border:1px solid var(--border2);box-shadow:none;background:var(--surface)}
+table{border-collapse:separate;border-spacing:0}
+thead tr{background:#17324D}
+th{padding:12px 10px;font-size:11px;color:#F6FAFC;border-right:1px solid rgba(255,255,255,.1)}
+td{padding:6px 8px;border-bottom:1px solid #EEF2EF}
+tbody tr{animation:none}
+tbody tr:nth-child(even){background:#FAFBFA}
+tbody tr:hover{background:#EEF6F2}
+td input{border-radius:6px;min-height:28px}
+td input:focus{background:#fff;border-color:#94BCA4;box-shadow:0 0 0 2px rgba(21,115,71,.12)}
+.table-toolbar,.filter-bar{
+  padding:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;
+}
+.search-box input,.cfg-row input,.bene-toolbar input,.bene-import-zone textarea,input,select,textarea{
+  border-radius:6px!important;border:1px solid var(--border)!important;
+}
+.cfg-row{align-items:stretch}
+.proxy-status,.status-box{border-radius:6px}
+.stat{
+  border-radius:8px;background:var(--surface);box-shadow:none;
+}
+.stat:hover{transform:none;box-shadow:var(--sh1)}
+.exp-option,.history-item,.monthly-card,.bene-modal,.modal,.gsearch-box{border-radius:8px}
+.global-progress-wrap{background:#EDF7F1;border-color:#CDE8D7;border-radius:8px}
+.gp-pct{color:var(--g1)}
+.gp-fill{background:linear-gradient(90deg,var(--blue),var(--g2));animation:none}
+.welcome-modal{border-radius:8px!important}
+body.dark{background:#0E1712!important;color:#DCE7E0}
+body.dark::before{background:linear-gradient(135deg,#0D1711 0%,#101C15 100%)!important}
+body.dark .topbar,body.dark .stepper,body.dark .kpi-bar,body.dark .card,body.dark .tbl-wrap,body.dark .stat{
+  background:#111D16!important;border-color:#25372D!important;box-shadow:none!important;
+}
+body.dark .step.active{background:#163823!important;box-shadow:inset 0 0 0 1px #28623D!important}
+body.dark .table-toolbar,body.dark .filter-bar{background:#0D1711!important;border-color:#25372D!important}
+body.dark thead tr,body.dark thead th{background:#14263A!important;color:#E7EEF5!important}
+body.dark tbody tr:nth-child(even){background:#101A14!important}
+body.dark tbody tr:hover{background:#17251C!important}
+body.dark .btn-outline{background:#111D16!important;color:#DCE7E0!important;border-color:#25372D!important}
+@media(max-width:900px){
+  .topbar{flex-wrap:wrap;gap:10px;position:relative}
+  .logo-amat svg{width:220px}
+  .topbar-divider{display:none}
+  .topbar-right{width:100%;margin-left:0;justify-content:space-between}
+  .stepper{top:0;margin:8px 10px;overflow-x:auto}
+  .kpi-bar{grid-template-columns:repeat(2,1fr);margin:10px}
+  .main{padding:0 10px;margin-top:12px}
+}
+@media(max-width:560px){
+  .kpi-bar{grid-template-columns:1fr}
+  .card{padding:16px}
+  .cfg-row{flex-direction:column}
+  .btn{width:100%;justify-content:center}
+}
 </style>
 </head>
 <body>
@@ -982,7 +1126,7 @@ body.dark .ai-btn.selected{background:var(--g2);color:#fff}
         <div class="file-queue" id="fq-list"></div>
         <div class="batch-actions">
           <button class="btn btn-green" id="btnext" onclick="extractAll()">
-            <i class="fa fa-magic"></i> Analyser tout avec Claude
+            <i class="fa fa-magic"></i> Analyser tout avec IA
           </button>
           <button class="btn btn-outline" onclick="resetFile()">
             <i class="fa fa-redo"></i> Recommencer
@@ -1229,7 +1373,7 @@ body.dark .ai-btn.selected{background:var(--g2);color:#fff}
     <div class="card">
       <div class="card-title"><i class="fa fa-server"></i> Adresse du serveur proxy</div>
       <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-        Le serveur proxy relaie vos images vers Claude en toute sécurité.
+        Le serveur proxy relaie vos images vers le fournisseur IA configure en toute securite.
         Si vous utilisez ce poste, l'adresse est <strong>http://localhost:3000</strong>.
       </p>
       <div class="cfg-row">
@@ -1723,7 +1867,7 @@ function renderQueue(){
   document.getElementById('batch-counter').textContent=total+' fichier'+(total>1?'s':'')+' sélectionné'+(total>1?'s':'');
   const btn=document.getElementById('btnext');
   btn.disabled=false;
-  btn.innerHTML='<i class="fa fa-magic"></i> Analyser '+total+' facture'+(total>1?'s':'')+' avec Claude';
+  btn.innerHTML='<i class="fa fa-magic"></i> Analyser '+total+' facture'+(total>1?'s':'')+' avec IA';
 }
 
 function setQueueItemStatus(i, status, extra){
