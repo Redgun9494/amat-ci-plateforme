@@ -31,6 +31,14 @@ let GEMINI_API_KEY    = process.env.GEMINI_API_KEY    || config.GEMINI_API_KEY  
 let GROQ_API_KEY      = process.env.GROQ_API_KEY      || config.GROQ_API_KEY      || '';
 const PORT = parseInt(process.env.PORT || config.PORT) || 3000;
 
+function isValidGeminiKey(key) {
+  return /^AIza[0-9A-Za-z_-]{20,}$/.test(String(key || '').trim());
+}
+
+function isValidGroqKey(key) {
+  return /^gsk_[0-9A-Za-z_-]{20,}$/.test(String(key || '').trim());
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function sendJSON(res, status, data) {
   res.writeHead(status, {
@@ -103,8 +111,9 @@ function claudeMessagesToGeminiParts(messages) {
 
 function callGemini(messages, geminiKey) {
   return new Promise((resolve, reject) => {
-    const key = geminiKey || GEMINI_API_KEY;
+    const key = String(geminiKey || GEMINI_API_KEY || '').trim();
     if (!key) return reject(new Error('Clé Gemini non configurée — définissez GEMINI_API_KEY ou entrez-la dans la plateforme'));
+    if (!isValidGeminiKey(key)) return reject(new Error('Clé Gemini invalide — elle doit commencer par AIza et provenir de Google AI Studio'));
 
     const parts = claudeMessagesToGeminiParts(messages);
     const payload = {
@@ -112,7 +121,7 @@ function callGemini(messages, geminiKey) {
       generationConfig: { maxOutputTokens: 8192, temperature: 0.1 }
     };
     const bodyStr = JSON.stringify(payload);
-    const apiPath = `/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+    const apiPath = `/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`;
 
     const req = https.request({
       hostname: 'generativelanguage.googleapis.com',
@@ -179,10 +188,17 @@ function claudeMessagesToGroqMessages(messages) {
 
 function callGroq(messages, groqKey) {
   return new Promise((resolve, reject) => {
-    const key = groqKey || GROQ_API_KEY;
+    const key = String(groqKey || GROQ_API_KEY || '').trim();
     if (!key) return reject(new Error('Clé Groq non configurée — inscrivez-vous sur groq.com et entrez votre clé gsk_...'));
+    if (!isValidGroqKey(key)) return reject(new Error('Clé Groq invalide — elle doit commencer par gsk_ et provenir de console.groq.com'));
 
     const groqMessages = claudeMessagesToGroqMessages(messages);
+    if (!JSON.stringify(groqMessages).toLowerCase().includes('json')) {
+      groqMessages.unshift({
+        role: 'system',
+        content: 'Reponds uniquement avec un objet JSON valide.'
+      });
+    }
     const payload = {
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       messages: groqMessages,
@@ -237,8 +253,8 @@ function callGroq(messages, groqKey) {
 async function callAI(messages, provider, geminiKey, groqKey) {
   // provider = 'auto' | 'claude' | 'gemini' | 'groq'
   const hasAnthropic = !!ANTHROPIC_API_KEY;
-  const hasGemini    = !!(geminiKey || GEMINI_API_KEY);
-  const hasGroq      = !!(groqKey || GROQ_API_KEY);
+  const hasGemini    = isValidGeminiKey(geminiKey || GEMINI_API_KEY);
+  const hasGroq      = isValidGroqKey(groqKey || GROQ_API_KEY);
 
   if (provider === 'gemini') return callGemini(messages, geminiKey);
   if (provider === 'claude') return callAnthropic({ model: 'claude-sonnet-4-6', max_tokens: 8096, messages });
@@ -274,7 +290,7 @@ const server = http.createServer(async (req, res) => {
 
   // Santé
   if (req.method === 'GET' && req.url === '/health') {
-    const hasC = !!ANTHROPIC_API_KEY, hasG = !!GEMINI_API_KEY, hasGr = !!GROQ_API_KEY;
+    const hasC = !!ANTHROPIC_API_KEY, hasG = isValidGeminiKey(GEMINI_API_KEY), hasGr = isValidGroqKey(GROQ_API_KEY);
     const provider = hasC ? 'claude' : hasGr ? 'groq' : hasG ? 'gemini' : 'none';
     return sendJSON(res, 200, {
       status: 'ok',
@@ -349,7 +365,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  const hasC = !!ANTHROPIC_API_KEY, hasG = !!GEMINI_API_KEY, hasGr = !!GROQ_API_KEY;
+  const hasC = !!ANTHROPIC_API_KEY, hasG = isValidGeminiKey(GEMINI_API_KEY), hasGr = isValidGroqKey(GROQ_API_KEY);
   const modeStr = hasC && hasGr ? 'Claude → Groq (fallback)' : hasC ? 'Claude uniquement' : hasGr ? 'Groq uniquement' : hasG ? 'Gemini uniquement' : '⚠ AUCUNE CLÉ';
   console.log('\n╔══════════════════════════════════════════════════════════╗');
   console.log('║              AMAT-CI — Plateforme active                 ║');

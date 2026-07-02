@@ -2852,7 +2852,7 @@ function setProvider(p){
 function saveGroqKey(){
   const k=(document.getElementById('groq-key-input')?.value||'').trim();
   if(!k){toast('Clé vide','error');return;}
-  if(!k.startsWith('gsk_')){toast('Clé Groq invalide (doit commencer par gsk_)','error');return;}
+  if(!/^gsk_[0-9A-Za-z_-]{20,}$/.test(k)){toast('Clé Groq invalide (doit commencer par gsk_)','error');return;}
   localStorage.setItem('amat_groq_key',k);
   const s=document.getElementById('groq-status');
   if(s){s.style.display='block';s.textContent='✅ Clé enregistrée localement';s.style.color='#1E7A3A';}
@@ -2862,12 +2862,13 @@ function saveGroqKey(){
 function testGroqKey(){
   const k=(document.getElementById('groq-key-input')?.value||'').trim()||getGroqKey();
   if(!k){toast('Entrez d\'abord la clé Groq','error');return;}
+  if(!/^gsk_[0-9A-Za-z_-]{20,}$/.test(k)){toast('Clé Groq invalide','error');return;}
   const s=document.getElementById('groq-status');
   if(s){s.style.display='block';s.textContent='Test en cours…';s.style.color='var(--text3)';}
   const proxyUrl=(localStorage.getItem('amat_proxy')||window.location.origin).replace(/\/$/,'');
   fetch(proxyUrl+'/analyser',{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({provider:'groq',groq_key:k,messages:[{role:'user',content:'Réponds juste OK'}]})
+    body:JSON.stringify({provider:'groq',groq_key:k,messages:[{role:'user',content:'Réponds uniquement avec ce JSON valide : {"ok":true}'}]})
   }).then(r=>r.json()).then(d=>{
     const txt=d.content?.[0]?.text||'';
     if(txt){
@@ -2887,7 +2888,7 @@ function testGroqKey(){
 function saveGeminiKey(){
   const k=(document.getElementById('gemini-key-input')?.value||'').trim();
   if(!k){toast('Clé vide','error');return;}
-  if(!k.startsWith('AIza')){toast('Clé Gemini invalide (doit commencer par AIza)','error');return;}
+  if(!/^AIza[0-9A-Za-z_-]{20,}$/.test(k)){toast('Clé Gemini invalide (doit commencer par AIza)','error');return;}
   localStorage.setItem('amat_gemini_key',k);
   const s=document.getElementById('gemini-status');
   if(s){s.style.display='block';s.textContent='✅ Clé enregistrée localement';s.style.color='#1E7A3A';}
@@ -2897,9 +2898,10 @@ function saveGeminiKey(){
 function testGeminiKey(){
   const k=(document.getElementById('gemini-key-input')?.value||'').trim()||getGeminiKey();
   if(!k){toast('Entrez d\'abord la clé Gemini','error');return;}
+  if(!/^AIza[0-9A-Za-z_-]{20,}$/.test(k)){toast('Clé Gemini invalide','error');return;}
   const s=document.getElementById('gemini-status');
   if(s){s.style.display='block';s.textContent='Test en cours…';s.style.color='var(--text3)';}
-  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+k,{
+  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+encodeURIComponent(k),{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({contents:[{parts:[{text:'Réponds juste OK'}]}]})
   }).then(r=>r.json()).then(d=>{
