@@ -1241,17 +1241,17 @@ body.dark .btn-outline{background:#111D16!important;color:#DCE7E0!important;bord
           <thead><tr>
             <th class="no-sort" style="width:30px"></th>
             <th class="no-sort" style="width:30px"></th>
-            <th onclick="sortTable('pharmacie')" data-sort="pharmacie">PHARMACIE</th>
+            <th onclick="sortTable('service')" data-sort="service">SERVICE</th>
             <th onclick="sortTable('numero_facture')" data-sort="numero_facture">N° FACTURE</th>
-            <th onclick="sortTable('date')" data-sort="date">Date</th>
-            <th onclick="sortTable('ref_bon')" data-sort="ref_bon">Réf. bon</th>
-            <th onclick="sortTable('salarie')" data-sort="salarie">Salarié</th>
-            <th onclick="sortTable('matricule')" data-sort="matricule">Matricule</th>
-            <th onclick="sortTable('patient')" data-sort="patient">Patient</th>
-            <th onclick="sortTable('total_bon')" data-sort="total_bon">Total bon</th>
-            <th class="no-sort">Taux</th>
-            <th onclick="sortTable('comptant')" data-sort="comptant">Comptant</th>
-            <th onclick="sortTable('credit')" data-sort="credit">Crédit</th>
+            <th onclick="sortTable('date')" data-sort="date">DATE</th>
+            <th onclick="sortTable('ref_bon')" data-sort="ref_bon">N° BON</th>
+            <th onclick="sortTable('matricule_bene')" data-sort="matricule_bene">MATRI. BÉNÉF.</th>
+            <th onclick="sortTable('matricule')" data-sort="matricule">MATRI. ADHÉSION</th>
+            <th onclick="sortTable('patient')" data-sort="patient">NOM BÉNÉF.</th>
+            <th onclick="sortTable('total_bon')" data-sort="total_bon">TOTAL TTC</th>
+            <th class="no-sort">TAUX</th>
+            <th onclick="sortTable('comptant')" data-sort="comptant">TICKET MODÉR.</th>
+            <th onclick="sortTable('credit')" data-sort="credit">PART AMAT-CI</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
           <tfoot><tr>
@@ -1726,7 +1726,7 @@ function updateSortUI(){
   const pill = document.getElementById('sort-pill');
   const pillText = document.getElementById('sort-pill-text');
   if(sortCol){
-    const colNames = {pharmacie:'Pharmacie',numero_facture:'N° Facture',date:'Date',ref_bon:'Réf. bon',salarie:'Salarié',matricule:'Matricule',patient:'Patient',total_bon:'Total bon',comptant:'Comptant',credit:'Crédit'};
+    const colNames = {service:'Service',numero_facture:'N° Facture',date:'Date',ref_bon:'N° BON',matricule_bene:'Matri. Bénéf.',matricule:'Matri. Adhésion',patient:'Nom Bénéf.',total_bon:'Total TTC',comptant:'Ticket Modér.',credit:'Part AMAT-CI'};
     if(pill) pill.classList.add('visible');
     if(pillText) pillText.textContent = (colNames[sortCol]||sortCol) + (sortDir===1?' ↑':' ↓');
   } else {
@@ -2018,15 +2018,29 @@ function hideProgress(){
   if(wrap) wrap.style.display='none';
 }
 
-// ═══ RÈGLES MÉTIER (NE PAS MODIFIER) ══════════════════════
+// ═══ RÈGLES MÉTIER CANEVA AMAT-CI ══════════════════════════
 function sanitizeCode(v){return(v||'').replace(/[\/\-\.]/g,'').trim()}
 
-function applyBusinessRules(lignes){
-  let moved=0;
+// Séquence N° BON auto : REC03000000, REC03000001, ...
+let _recBonSeq = 0;
+function nextRecBon(){ return 'REC03' + String(_recBonSeq++).padStart(6,'0'); }
+
+function applyBusinessRules(lignes, typeEtab){
+  const isPublic = ['HOPITAL_GENERAL','CHU'].includes((typeEtab||'').toUpperCase());
   lignes.forEach(r=>{
-    r.taux=null;
-    r.ref_bon=sanitizeCode(r.ref_bon);
-    r.matricule=sanitizeCode(r.matricule);
+    // Col A : SERVICE
+    if(!r.service){
+      const te=(r.type_etablissement||typeEtab||'').toUpperCase();
+      r.service = (te==='PHARMACIE') ? 'PHARMACIE' : 'CONSULTATION';
+    }
+    // Col D : N° BON — séquence auto si absent
+    r.ref_bon = (r.ref_bon||'').trim();
+    if(!r.ref_bon) r.ref_bon = nextRecBon();
+    // Col E : Matricule adhérent — nettoyer
+    r.matricule = sanitizeCode(r.matricule);
+    // Col F : Matricule bénéficiaire
+    r.matricule_bene = (r.matricule_bene||'').trim();
+    // Col G : Nom bénéficiaire — fusionner salarie→patient si besoin
     const patient=(r.patient||'').trim();
     const salarie=(r.salarie||'').trim();
     if(patient){
@@ -2034,10 +2048,16 @@ function applyBusinessRules(lignes){
     } else if(salarie){
       r.patient=salarie.toUpperCase();
       r.salarie='';
-      moved++;
+    }
+    r.patient=(r.patient||'').toUpperCase().trim();
+    // Taux toujours null au départ (sera appliqué depuis la base)
+    r.taux=null;
+    // Structures publiques : AMAT-CI = 100%, ticket = 0
+    if(isPublic){
+      r.credit=parseFloat(r.total_bon)||0;
+      r.comptant=0;
     }
   });
-  return {moved};
 }
 
 function detectAndRemoveTotalRow(lignes){
@@ -2051,31 +2071,39 @@ function detectAndRemoveTotalRow(lignes){
 
 // ═══ EXTRACTION MULTI-FICHIERS (PARALLÈLE + RETRY) ══════════════════════════
 // ═══ PROMPTS IA PAR TYPE D'ÉTABLISSEMENT ════════════════════════════════════
-const _PROMPT_BASE_REGLES = `RÈGLES STRICTES :
-1. "patient" : nom du BÉNÉFICIAIRE/PATIENT indiqué sur le document. Sinon vide.
-2. "salarie" : nom de l'ADHÉRENT/SALARIÉ (agent DGTCP) indiqué. Sinon vide.
-3. "matricule" : numéro matricule de l'agent (chiffres+lettres, sans espaces ni tirets ni points).
-4. "taux" : TOUJOURS null — ne jamais renseigner même si visible sur le document.
-5. "ref_bon" : numéro du bon de prise en charge — unique par ligne, ne pas dupliquer.
-6. NE PAS inclure les lignes de total/sous-total/cumul/montant total.
-7. "pharmacie" = NOM COMPLET DE L'ÉTABLISSEMENT en majuscules. JAMAIS "AMAT-CI", "DGTCP" ou "TRÉSOR".
-8. Si plusieurs bénéficiaires, créer UNE LIGNE PAR BÉNÉFICIAIRE.
-9. Les montants sont des nombres entiers en francs CFA.
-Valeurs illisibles = chaîne vide ou 0. Noms TOUJOURS en MAJUSCULES.`;
+const _PROMPT_BASE_REGLES = `RÈGLES STRICTES — CANEVA AMAT-CI (11 colonnes A à K) :
+Col A "service" : "PHARMACIE" si pharmacie détectée sur le scan, sinon "CONSULTATION" (cliniques, hôpitaux, CHU, PMI, CHR, EPHD).
+Col B "numero_facture" : numéro encerclé ou encadré en ROUGE sur le scan. Répéter identiquement sur TOUTES les lignes de la même facture.
+Col C "date" : date de prestation au format JJ/MM/AAAA. Si colonne date absente, laisser "".
+Col D "ref_bon" : N° BON de prise en charge. Extraire textuellement. Si doublon, ajouter suffixe (ex: /2). Si absent ou vide, laisser "" (le système génère la séquence REC03xxxxxx).
+Col E "matricule" : matricule ADHÉRENT (format 000000A / 000A / 7 chiffres). SANS espaces, tirets, points. Si le scan contient MATRICULE_NOM (ex: 560098BE2_KOFFI), prendre la partie gauche du _.
+Col F "matricule_bene" : code BÉNÉFICIAIRE (C ou C1/C2... pour conjoint ; E1/E2/E3... pour enfant ; vide si l'adhérent lui-même ou inconnu).
+Col G "patient" : NOM et PRÉNOMS COMPLETS du bénéficiaire en MAJUSCULES. Si nom et prénom en colonnes séparées, CONCATÉNER. Si la partie droite du _ (ex: KOFFI), utiliser comme nom brut.
+Col H "total_bon" : montant TOTAL TTC de la prestation (entier CFA, sans séparateur de milliers).
+Col I "taux" : TOUJOURS null — sera appliqué automatiquement depuis la base bénéficiaires.
+"salarie" : laisser toujours vide (non utilisé dans ce format).
+"comptant" et "credit" : laisser à 0 (calculés automatiquement côté système).
+"pharmacie" = NOM COMPLET DE L'ÉTABLISSEMENT en majuscules. JAMAIS "AMAT-CI", "DGTCP" ou "TRÉSOR".
+Structures publiques (CHU, CHR, EPHR, EPHD, PMI, HOPITAL GENERAL) → type_etablissement="HOPITAL_GENERAL".
+Structures privées (PHARMACIE, CLINIQUE, OPTIQUE, DENTISTE) → type correspondant.
+NE PAS inclure lignes de total/sous-total/cumul. UNE LIGNE PAR BÉNÉFICIAIRE.
+Montants entiers CFA. Illisible = "" ou 0. Noms TOUJOURS en MAJUSCULES.`;
 
 const _PROMPT_JSON_FORMAT = `Retourne UNIQUEMENT un JSON valide, sans texte avant ni après :
 {
-  "pharmacie": "NOM EN MAJUSCULES",
-  "type_etablissement": "PHARMACIE",
+  "pharmacie": "NOM ÉTABLISSEMENT EN MAJUSCULES",
+  "type_etablissement": "PHARMACIE|CLINIQUE|HOPITAL_GENERAL",
   "numero_facture": "",
   "mois": "",
   "annee": "2025",
   "lignes": [{
+    "service": "PHARMACIE",
     "date": "JJ/MM/AAAA",
     "ref_bon": "",
-    "salarie": "",
     "matricule": "",
+    "matricule_bene": "",
     "patient": "",
+    "salarie": "",
     "total_bon": 0,
     "taux": null,
     "comptant": 0,
@@ -2084,52 +2112,63 @@ const _PROMPT_JSON_FORMAT = `Retourne UNIQUEMENT un JSON valide, sans texte avan
 }`;
 
 const PROMPTS_PAR_TYPE = {
-  pharmacie: `Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire).
-Analyse cette FACTURE DE PHARMACIE (médicaments, produits pharmaceutiques).
+  pharmacie: `Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire). Département Informatique et du Système d'Information.
+Analyse cette FACTURE DE PHARMACIE et remplis le CANEVA AMAT-CI.
 
-CONTEXTE : Facture émise par une pharmacie pour des médicaments remboursés par l'AMAT-CI.
-Chaque ligne correspond à un BON DE PRISE EN CHARGE d'un bénéficiaire.
-"total_bon" = montant total du bon, "credit" = part remboursée AMAT-CI, "comptant" = part payée par le bénéficiaire.
-"type_etablissement" = "PHARMACIE".
-
-${_PROMPT_BASE_REGLES}
-${_PROMPT_JSON_FORMAT}`,
-
-  clinique: `Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire).
-Analyse cette FACTURE DE CLINIQUE PRIVÉE (consultation, soins, actes médicaux).
-
-CONTEXTE : Facture émise par une clinique privée pour des consultations, actes médicaux ou soins.
-Chaque ligne correspond à un BON DE PRISE EN CHARGE d'un bénéficiaire (consultation, examen, soin).
-"total_bon" = montant total des soins, "credit" = part remboursée AMAT-CI, "comptant" = reste à charge.
-"type_etablissement" = "CLINIQUE".
-Le champ "patient" contient le nom du malade. Le champ "ref_bon" contient le numéro du bon de soins.
-Si la facture contient des actes (consultation, radio, analyses), regrouper par bénéficiaire.
+RÈGLES SPÉCIFIQUES PHARMACIE :
+- "type_etablissement" = "PHARMACIE"
+- "service" = "PHARMACIE" pour toutes les lignes
+- "pharmacie" = nom commercial complet + ville si indiquée (ex: "GRANDE PHARMACIE DE TOUMODI")
+- Chaque ligne = un BON DE PRISE EN CHARGE d'un bénéficiaire
+- "total_bon" = montant total du bon (TOTAL TTC)
+- TAUX : 80 ou 90 selon bénéficiaire — laisser null (appliqué depuis la base)
+- Structure PRIVÉE : la part AMAT-CI sera calculée automatiquement
 
 ${_PROMPT_BASE_REGLES}
 ${_PROMPT_JSON_FORMAT}`,
 
-  hopital_general: `Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire).
-Analyse cette FACTURE D'HÔPITAL GÉNÉRAL / CHU / CHR (soins hospitaliers, consultations spécialisées).
+  clinique: `Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire). Département Informatique et du Système d'Information.
+Analyse cette FACTURE DE CLINIQUE PRIVÉE / CABINET MÉDICAL et remplis le CANEVA AMAT-CI.
 
-CONTEXTE : Facture émise par un hôpital général, CHU (Centre Hospitalier Universitaire) ou CHR
-pour des consultations spécialisées, hospitalisations, actes chirurgicaux ou examens.
-Chaque ligne = un bénéficiaire avec son bon de prise en charge.
-"total_bon" = montant total, "credit" = part AMAT-CI, "comptant" = part patient.
-"type_etablissement" = "HOPITAL_GENERAL".
-Le nom de l'hôpital (ex: "CHU DE COCODY", "HOPITAL GENERAL DE YOPOUGON") va dans "pharmacie".
+RÈGLES SPÉCIFIQUES CLINIQUE :
+- "type_etablissement" = "CLINIQUE"
+- "service" = "CONSULTATION" pour toutes les lignes
+- "pharmacie" = nom de la clinique/cabinet + ville (ex: "CLINIQUE SAINTE MARIE ABIDJAN")
+- Chaque ligne = un BON DE PRISE EN CHARGE (consultation, examen, acte)
+- Si actes multiples pour un même bénéficiaire, regrouper en une seule ligne avec le total
+- "total_bon" = montant total TTC des soins
+- Structure PRIVÉE : taux null (80 ou 90 sera appliqué depuis la base)
 
 ${_PROMPT_BASE_REGLES}
 ${_PROMPT_JSON_FORMAT}`,
 
-  centre_sante: `Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire).
-Analyse cette FACTURE DE CENTRE DE SANTÉ PUBLIQUE / DISPENSAIRE / INFIRMERIE.
+  hopital_general: `Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire). Département Informatique et du Système d'Information.
+Analyse cette FACTURE DE STRUCTURE PUBLIQUE (CHU / CHR / EPHR / EPHD / HÔPITAL GÉNÉRAL / PMI) et remplis le CANEVA AMAT-CI.
 
-CONTEXTE : Facture émise par un centre de santé publique, dispensaire, infirmerie ou espace de santé
-communautaire pour des soins primaires, consultations de base ou médicaments essentiels.
-Chaque ligne = un bénéficiaire avec son bon de prise en charge.
-"total_bon" = montant total des soins, "credit" = part AMAT-CI, "comptant" = reste à charge.
-"type_etablissement" = "HOPITAL_GENERAL".
-Le nom du centre (ex: "CENTRE DE SANTE ABOBO", "DISPENSAIRE ADJAME") va dans "pharmacie".
+RÈGLES SPÉCIFIQUES STRUCTURE PUBLIQUE :
+- "type_etablissement" = "HOPITAL_GENERAL"
+- "service" = "CONSULTATION" pour toutes les lignes
+- "pharmacie" = nom officiel selon les règles :
+  * CHU → "CHU {VILLE}" (ex: "CHU DE COCODY")
+  * EPHR ou CHR → "CENTRE HOSPITALIER REGIONAL {VILLE}"
+  * EPHD ou HÔPITAL GÉNÉRAL → "HOPITAL GENERAL {VILLE}"
+  * PMI → "PMI {VILLE}"
+  * CCTOS → "CENTRE DE CONSULTATION ET DE TRAITEMENTS ODONTO STOMATOLOGIQUE"
+- STRUCTURE PUBLIQUE : AMAT-CI prend 100% en charge (taux=null, credit=total_bon, comptant=0)
+- Chaque ligne = un bénéficiaire avec son bon de prise en charge
+
+${_PROMPT_BASE_REGLES}
+${_PROMPT_JSON_FORMAT}`,
+
+  centre_sante: `Tu es un agent de numérisation AMAT-CI (Côte d'Ivoire). Département Informatique et du Système d'Information.
+Analyse cette FACTURE DE CENTRE DE SANTÉ / DISPENSAIRE / INFIRMERIE PUBLIQUE et remplis le CANEVA AMAT-CI.
+
+RÈGLES SPÉCIFIQUES CENTRE DE SANTÉ PUBLIC :
+- "type_etablissement" = "HOPITAL_GENERAL"
+- "service" = "CONSULTATION" pour toutes les lignes
+- "pharmacie" = nom complet du centre (ex: "CENTRE DE SANTE D'ABOBO", "DISPENSAIRE D'ADJAME")
+- STRUCTURE PUBLIQUE : AMAT-CI prend 100% en charge (taux=null, credit=total_bon, comptant=0)
+- Chaque ligne = un bénéficiaire avec son bon de prise en charge
 
 ${_PROMPT_BASE_REGLES}
 ${_PROMPT_JSON_FORMAT}`
@@ -2216,10 +2255,27 @@ async function extractAll(){
         const nouvelles=parsed.lignes||[];
         nouvelles.forEach(r=>{r.pharmacie=pharmaNom||r.pharmacie||'';r.numero_facture=factureNum||r.numero_facture||'';});
         detectAndRemoveTotalRow(nouvelles);
-        applyBusinessRules(nouvelles);
+        applyBusinessRules(nouvelles, entry.typeEtab);
         // Tagger chaque ligne avec le type de facture courant
         if(currentTypeFact) nouvelles.forEach(r=>r._typeFacture=currentTypeFact);
         const beneRes=applyBeneTaux(nouvelles); // ← auto-fill taux
+        // Calculer crédit (part AMAT-CI) et comptant (ticket modérateur) après application du taux
+        const isPublicEtab = ['HOPITAL_GENERAL','CHU'].includes(entry.typeEtab||'');
+        nouvelles.forEach(r=>{
+          if(r.is_total) return;
+          const ttc=parseFloat(r.total_bon)||0;
+          const tx=parseFloat(r.taux);
+          if(isPublicEtab){
+            // Structure publique : AMAT-CI = 100%, ticket = vide
+            r.credit=ttc; r.comptant=0; r._isPublic=true;
+          } else if(!isNaN(tx)&&tx>0){
+            // Structure privée : K=int(H×taux/100), J=H-K
+            r.credit=Math.floor(ttc*tx/100);
+            r.comptant=ttc-r.credit;
+          } else if(!r.credit&&ttc>0){
+            r.credit=ttc; r.comptant=0; // fallback
+          }
+        });
         const nbTaux=beneRes.matched;
         _sessionBeneMatched+=nbTaux;
         // Alerte matricules non reconnus
@@ -2356,25 +2412,25 @@ function checkDuplicatesSilent(){
 }
 
 function mkRow(r,i){
-  const pharma=esc(r.pharmacie||document.getElementById('f-pharma').value||'—');
+  const svc=esc(r.service||'CONSULTATION');
   const facture=esc(r.numero_facture||document.getElementById('f-facture').value||'—');
   const tr=document.createElement('tr');
   if(r.is_total) tr.classList.add('total-row');
   tr.innerHTML=`
     <td class="row-num">${i+1}${r.is_total?'<span class="total-badge">TOTAL</span>':''}</td>
     <td><button class="del-btn" onclick="confirmDelete(${i})" title="Supprimer"><i class="fa fa-trash"></i></button></td>
-    <td class="cell-global cell-pharma"><input value="${pharma}" onchange="set(${i},'pharmacie',this.value.toUpperCase())" style="font-weight:600;font-size:11px"></td>
+    <td class="cell-global cell-pharma"><input value="${svc}" onchange="set(${i},'service',this.value.toUpperCase())" style="font-weight:600;font-size:11px"></td>
     <td class="cell-global cell-facture"><input value="${facture}" onchange="set(${i},'numero_facture',this.value)" style="font-size:11px"></td>
     <td><input value="${esc(r.date||'')}" onchange="set(${i},'date',this.value)" placeholder="JJ/MM/AAAA" style="width:92px"></td>
     <td><input value="${esc(r.ref_bon||'')}" onchange="set(${i},'ref_bon',this.value)" placeholder="—"></td>
-    <td><input value="${esc(r.salarie||'')}" onchange="set(${i},'salarie',this.value)" placeholder="NOM PRÉNOM"></td>
+    <td><input value="${esc(r.matricule_bene||'')}" onchange="set(${i},'matricule_bene',this.value)" placeholder="C/C1/E1…"></td>
     <td><input value="${esc(r.matricule||'')}" onchange="set(${i},'matricule',this.value)" placeholder="—"></td>
     <td><input value="${esc((r.patient||'').toUpperCase())}" onchange="set(${i},'patient',this.value.toUpperCase())" style="font-weight:600;text-transform:uppercase"></td>
     <td><input type="number" value="${r.total_bon||0}" onchange="num(${i},'total_bon',this.value)" style="width:86px;text-align:right"></td>
-    <td><input type="number" value="${r.taux||''}" onchange="num(${i},'taux',this.value)" style="width:50px;text-align:center" placeholder="—"></td>
+    <td><input type="number" value="${r.taux!=null?r.taux:''}" onchange="num(${i},'taux',this.value)" style="width:50px;text-align:center" placeholder="—"></td>
     <td><input type="number" value="${r.comptant||0}" onchange="num(${i},'comptant',this.value)" style="width:86px;text-align:right"></td>
     <td><input type="number" value="${r.credit||0}" onchange="num(${i},'credit',this.value)" style="width:86px;text-align:right"></td>
- 
+
   `;
   return tr;
 }
@@ -2408,7 +2464,7 @@ function updateBadge(){
 function addRow(){
   const pharma=(document.getElementById('f-pharma')?.value||'').toUpperCase().trim();
   const facture=document.getElementById('f-facture')?.value||'';
-  rows.push({pharmacie:pharma,numero_facture:facture,date:'',ref_bon:'',salarie:'',matricule:'',patient:'',total_bon:0,taux:null,comptant:0,credit:0});
+  rows.push({service:'CONSULTATION',pharmacie:pharma,numero_facture:facture,date:'',ref_bon:'',matricule_bene:'',matricule:'',patient:'',total_bon:0,taux:null,comptant:0,credit:0});
   renderTable();
   autoSave();
 }
@@ -2482,7 +2538,7 @@ function previewFile(i){
     `<span><i class="fa fa-list"></i> ${entry.rows.length} ligne(s)</span>`+
     `<span><i class="fa fa-money-bill"></i> Total: ${fmt(totalBon)}</span>`+
     `<span style="color:var(--orange)"><i class="fa fa-credit-card"></i> Crédit: ${fmt(credit)}</span>`;
-  const cols=[{h:'RÉF. BON',k:'ref_bon'},{h:'DATE',k:'date'},{h:'SALARIÉ',k:'salarie'},{h:'MATRICULE',k:'matricule'},{h:'PATIENT',k:'patient'},{h:'TOTAL BON',k:'total_bon'},{h:'COMPTANT',k:'comptant'},{h:'CRÉDIT',k:'credit'}];
+  const cols=[{h:'SERVICE',k:'service'},{h:'N° BON',k:'ref_bon'},{h:'DATE',k:'date'},{h:'MATRI. BÉNÉF.',k:'matricule_bene'},{h:'MATRI. ADHÉSION',k:'matricule'},{h:'NOM BÉNÉF.',k:'patient'},{h:'TOTAL TTC',k:'total_bon'},{h:'TICKET MODÉR.',k:'comptant'},{h:'PART AMAT-CI',k:'credit'}];
   document.getElementById('preview-thead').innerHTML=cols.map(c=>`<th>${c.h}</th>`).join('');
   document.getElementById('preview-tbody').innerHTML=entry.rows.map(r=>`<tr>${cols.map(c=>`<td>${r[c.k]||''}</td>`).join('')}</tr>`).join('');
   document.getElementById('preview-overlay').classList.add('open');
@@ -2565,7 +2621,7 @@ function _exportPharmRows(pharmNom,pharmRows){
   const factGroups=[...byFacture.entries()];
   const hasMultiple=factGroups.length>1;
 
-  const headers=['PHARMACIE','N° FACTURE','DATE','RÉF. BON','SALARIÉ','MATRICULE','PATIENT','TOTAL BON','TAUX','COMPTANT','CRÉDIT'];
+  const headers=['SERVICE','N° FACTURE','DATE','N° BON','MATRI. BÉNÉF.','MATRI. ADHÉSION','NOM BÉNÉFICIAIRE','TOTAL TTC','TAUX','TICKET MODÉR.','PART AMAT-CI'];
   const wsData=[headers];
   const redRowIdxs=new Set();
   const sepRowIdxs=new Set();
@@ -2582,9 +2638,9 @@ function _exportPharmRows(pharmNom,pharmRows){
       const dataIdx=wsData.length;
       if(hasMultiple&&gIdx>0)redRowIdxs.add(dataIdx);
       wsData.push([
-        (r.pharmacie||pharmNom).toUpperCase(),
+        (r.service||'CONSULTATION').toUpperCase(),
         r.numero_facture||'',r.date||'',r.ref_bon||'',
-        r.salarie||'',r.matricule||'',
+        r.matricule_bene||'',r.matricule||'',
         (r.patient||'').toUpperCase(),
         parseFloat(r.total_bon)||0,
         r.taux!=null&&r.taux!==''?parseFloat(r.taux):null,
@@ -2624,7 +2680,7 @@ function exporterTXT(){
     pharmRows.forEach(r=>{const k=(r.numero_facture||'').trim()||'__';if(!byFacture.has(k))byFacture.set(k,[]);byFacture.get(k).push(r);});
     byFacture.forEach((factRows,factNum)=>{
       if(factNum!=='__')txt+='=== FACTURE: '+factNum+' ===\n';
-      factRows.forEach(r=>{txt+=[(r.pharmacie||pharmNom).toUpperCase(),r.numero_facture||'',r.date||'',r.ref_bon||'',r.salarie||'',r.matricule||'',(r.patient||'').toUpperCase(),r.total_bon||'',r.taux!=null?r.taux+'%':'',r.comptant||'',r.credit||''].join('\t')+'\n';});
+      factRows.forEach(r=>{txt+=[(r.service||'CONSULTATION').toUpperCase(),r.numero_facture||'',r.date||'',r.ref_bon||'',r.matricule_bene||'',r.matricule||'',(r.patient||'').toUpperCase(),r.total_bon||'',r.taux!=null?r.taux+'%':'',r.comptant||'',r.credit||''].join('\t')+'\n';});
       txt+='\n';
     });
     const a=document.createElement('a');
