@@ -1426,37 +1426,25 @@ body.dark .btn-outline{background:#111D16!important;color:#DCE7E0!important;bord
         </div>
         <div id="ai-mode-hint" style="margin-top:8px;font-size:11px;color:var(--text3)"></div>
       </div>
-      <!-- Clé Groq -->
+      <!-- Groq — serveur uniquement -->
       <div id="groq-key-section">
-        <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:8px">
-          <i class="fa fa-key" style="margin-right:4px;color:#F55036"></i>Clé API Groq (Llama 4 vision · gratuit)
-        </label>
-        <div class="cfg-row">
-          <input type="password" id="groq-key-input" placeholder="gsk_… (obtenez-la gratuitement sur console.groq.com)" autocomplete="off">
-          <button class="btn btn-outline" onclick="testGroqKey()"><i class="fa fa-plug"></i> Tester</button>
-          <button class="btn btn-green"   onclick="saveGroqKey()"><i class="fa fa-check"></i> Enregistrer</button>
+        <div style="background:#FFF8F0;border:1px solid #F5C97A;border-radius:8px;padding:10px 14px;font-size:12px;color:#7A4A00;display:flex;align-items:flex-start;gap:10px">
+          <i class="fa fa-shield-alt" style="color:#E8690A;margin-top:2px;flex-shrink:0"></i>
+          <div>
+            <strong>Clé Groq — configurée côté serveur uniquement</strong><br>
+            La clé GROQ_API_KEY est définie dans les variables d'environnement Render. Elle n'est jamais transmise au navigateur.
+          </div>
         </div>
-        <div class="proxy-status" id="groq-status" style="display:none"></div>
-        <p style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">
-          <i class="fa fa-external-link-alt" style="margin-right:4px"></i>
-          Clé gratuite : <strong>console.groq.com/keys</strong> → "Create API Key" → sans carte bancaire
-        </p>
       </div>
-      <!-- Clé Gemini -->
+      <!-- Gemini — serveur uniquement -->
       <div id="gemini-key-section">
-        <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:8px;margin-top:14px">
-          <i class="fa fa-key" style="margin-right:4px;color:#1A73E8"></i>Clé API Google Gemini
-        </label>
-        <div class="cfg-row">
-          <input type="password" id="gemini-key-input" placeholder="Clé Google AI Studio…" autocomplete="off">
-          <button class="btn btn-outline" onclick="testGeminiKey()"><i class="fa fa-plug"></i> Tester</button>
-          <button class="btn btn-green"   onclick="saveGeminiKey()"><i class="fa fa-check"></i> Enregistrer</button>
+        <div style="background:#F0F6FF;border:1px solid #A8C4E8;border-radius:8px;padding:10px 14px;font-size:12px;color:#1A3A6A;margin-top:12px;display:flex;align-items:flex-start;gap:10px">
+          <i class="fa fa-shield-alt" style="color:#1A73E8;margin-top:2px;flex-shrink:0"></i>
+          <div>
+            <strong>Clé Gemini — configurée côté serveur uniquement</strong><br>
+            La clé GEMINI_API_KEY est définie dans les variables d'environnement Render. Elle n'est jamais transmise au navigateur.
+          </div>
         </div>
-        <div class="proxy-status" id="gemini-status" style="display:none"></div>
-        <p style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">
-          <i class="fa fa-external-link-alt" style="margin-right:4px"></i>
-          Clé gratuite : <strong>aistudio.google.com/apikey</strong> → "Create API key" → sans carte bancaire
-        </p>
       </div>
       <!-- Clé Mistral -->
       <div id="mistral-key-section" style="display:none">
@@ -1494,7 +1482,7 @@ body.dark .btn-outline{background:#111D16!important;color:#DCE7E0!important;bord
     <div class="card" style="background:linear-gradient(135deg,#F4FAF6,#EEF6F1);border-color:#A8C9B5">
       <div class="card-title" style="color:var(--g2)"><i class="fa fa-shield-alt"></i> Sécurité</div>
       <p style="font-size:13px;color:var(--text2);line-height:1.8">
-        La clé API Anthropic est stockée <strong>uniquement sur le serveur</strong>, jamais dans votre navigateur.
+        Les clés API <strong>Anthropic, Gemini et Groq</strong> sont stockées <strong>uniquement sur le serveur</strong> (variables d'environnement Render), jamais dans votre navigateur. Les clés Mistral et OpenRouter peuvent être saisies dans l'interface si nécessaire.
         Cette plateforme ne fait que transmettre vos images — votre responsable informatique
         peut consulter les journaux depuis le serveur.
       </p>
@@ -2004,7 +1992,7 @@ async function retryOne(i){
   try{
     const resp=await fetch(proxyUrl+'/analyser',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({max_tokens:8096,provider:getProvider(),gemini_key:getGeminiKey(),groq_key:getGroqKey(),mistral_key:getMistralKey(),openrouter_key:getOpenRouterKey(),messages:[{role:'user',content:[
+      body:JSON.stringify({max_tokens:8096,provider:getProvider(),mistral_key:getMistralKey(),openrouter_key:getOpenRouterKey(),messages:[{role:'user',content:[
         ...(entry.jpegPages && entry.jpegPages.length
           ? entry.jpegPages.map(b64=>({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}}))
           : [entry.type==='application/pdf'
@@ -2267,8 +2255,6 @@ async function extractAll(){
           body:JSON.stringify({
             max_tokens:8096,
             provider:getProvider(),
-            gemini_key:getGeminiKey(),
-            groq_key:getGroqKey(),
             mistral_key:getMistralKey(),
             openrouter_key:getOpenRouterKey(),
             messages:[{role:'user',content:[
@@ -3120,8 +3106,6 @@ function testProxy(){
 
 // ═══ FOURNISSEUR IA ═══════════════════════════════════════════════════════════
 function getProvider(){      return localStorage.getItem('amat_provider')||'gemini'; }
-function getGeminiKey(){     return localStorage.getItem('amat_gemini_key')||''; }
-function getGroqKey(){       return localStorage.getItem('amat_groq_key')||''; }
 function getMistralKey(){    return localStorage.getItem('amat_mistral_key')||''; }
 function getOpenRouterKey(){ return localStorage.getItem('amat_openrouter_key')||''; }
 
@@ -3135,10 +3119,10 @@ function setProvider(p){
   const hints={
     auto:'Mode automatique : Gemini → Groq → Mistral → OpenRouter → Claude selon les clés configurées.',
     claude:'Claude uniquement — nécessite ANTHROPIC_API_KEY configurée sur Render.',
-    groq:'Groq (Llama 4 Scout) — gratuit avec votre clé console.groq.com.',
-    gemini:'Gemini recommandé — gratuit avec votre clé Google AI Studio.',
+    groq:'Groq (Llama 4 Scout) — clé configurée sur le serveur (GROQ_API_KEY).',
+    gemini:'Gemini recommandé — clé configurée sur le serveur (GEMINI_API_KEY).',
     mistral:'Mistral AI (mistral-small) — gratuit avec votre clé console.mistral.ai.',
-    openrouter:'OpenRouter — accès à des dizaines de modèles gratuits.'
+    openrouter:'OpenRouter — accès à des dizaines de modèles gratuits (sk-or-...).'
   };
   const h=document.getElementById('ai-mode-hint');if(h)h.textContent=hints[p]||'';
   // Afficher/masquer sections de clés
@@ -3147,79 +3131,11 @@ function setProvider(p){
   document.getElementById('groq-key-section')?.style && (document.getElementById('groq-key-section').style.display=(showAll||p==='groq')?'':'none');
   document.getElementById('mistral-key-section')?.style && (document.getElementById('mistral-key-section').style.display=(showAll||p==='mistral')?'':'none');
   document.getElementById('openrouter-key-section')?.style && (document.getElementById('openrouter-key-section').style.display=(showAll||p==='openrouter')?'':'none');
+
+
   toast('IA : '+{auto:'Automatique',claude:'Claude',groq:'Groq',gemini:'Gemini',mistral:'Mistral',openrouter:'OpenRouter'}[p],'success',1500);
 }
 
-function saveGroqKey(){
-  const k=(document.getElementById('groq-key-input')?.value||'').trim();
-  if(!k){toast('Clé vide','error');return;}
-  if(!/^gsk_[0-9A-Za-z_-]{20,}$/.test(k)){toast('Clé Groq invalide (doit commencer par gsk_)','error');return;}
-  localStorage.setItem('amat_groq_key',k);
-  const s=document.getElementById('groq-status');
-  if(s){s.style.display='block';s.textContent='✅ Clé enregistrée localement';s.style.color='#1E7A3A';}
-  toast('Clé Groq enregistrée','success');
-}
-
-function testGroqKey(){
-  const k=(document.getElementById('groq-key-input')?.value||'').trim()||getGroqKey();
-  if(!k){toast('Entrez d\'abord la clé Groq','error');return;}
-  if(!/^gsk_[0-9A-Za-z_-]{20,}$/.test(k)){toast('Clé Groq invalide','error');return;}
-  const s=document.getElementById('groq-status');
-  if(s){s.style.display='block';s.textContent='Test en cours…';s.style.color='var(--text3)';}
-  const proxyUrl=(localStorage.getItem('amat_proxy')||window.location.origin).replace(/\/$/,'');
-  fetch(proxyUrl+'/analyser',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({provider:'groq',groq_key:k,messages:[{role:'user',content:'Réponds uniquement avec ce JSON valide : {"ok":true}'}]})
-  }).then(r=>r.json()).then(d=>{
-    const txt=d.content?.[0]?.text||'';
-    if(txt){
-      if(s){s.textContent='✅ Clé valide — Groq répond : '+txt.substring(0,40);s.style.color='#1E7A3A';}
-      toast('Groq OK !','success');
-    } else {
-      const err=d.error?.message||JSON.stringify(d).substring(0,80);
-      if(s){s.textContent='❌ '+err;s.style.color='#B33';}
-      toast('Erreur Groq','error');
-    }
-  }).catch(e=>{
-    if(s){s.textContent='Erreur réseau : '+e.message;s.style.color='#B33';}
-    toast('Groq inaccessible','error');
-  });
-}
-
-function saveGeminiKey(){
-  const k=(document.getElementById('gemini-key-input')?.value||'').trim();
-  if(!k){toast('Clé vide','error');return;}
-  if(!/^(AIza[0-9A-Za-z_-]{20,}|AQ\.[0-9A-Za-z_-]{20,})$/.test(k)){toast('Clé Gemini invalide','error');return;}
-  localStorage.setItem('amat_gemini_key',k);
-  const s=document.getElementById('gemini-status');
-  if(s){s.style.display='block';s.textContent='✅ Clé enregistrée localement';s.style.color='#1E7A3A';}
-  toast('Clé Gemini enregistrée','success');
-}
-
-function testGeminiKey(){
-  const k=(document.getElementById('gemini-key-input')?.value||'').trim()||getGeminiKey();
-  if(!k){toast('Entrez d\'abord la clé Gemini','error');return;}
-  if(!/^(AIza[0-9A-Za-z_-]{20,}|AQ\.[0-9A-Za-z_-]{20,})$/.test(k)){toast('Clé Gemini invalide','error');return;}
-  const s=document.getElementById('gemini-status');
-  if(s){s.style.display='block';s.textContent='Test en cours…';s.style.color='var(--text3)';}
-  fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent',{
-    method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':k},
-    body:JSON.stringify({contents:[{parts:[{text:'Réponds juste OK'}]}]})
-  }).then(r=>r.json()).then(d=>{
-    const txt=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
-    if(txt){
-      if(s){s.textContent='✅ Clé valide — Gemini répond : '+txt.substring(0,30);s.style.color='#1E7A3A';}
-      toast('Gemini OK !','success');
-    } else {
-      const err=d.error?.message||JSON.stringify(d).substring(0,80);
-      if(s){s.textContent='❌ '+err;s.style.color='#B33';}
-      toast('Erreur Gemini','error');
-    }
-  }).catch(e=>{
-    if(s){s.textContent='Erreur réseau : '+e.message;s.style.color='#B33';}
-    toast('Gemini inaccessible','error');
-  });
-}
 
 function saveMistralKey(){
   const k=(document.getElementById('mistral-key-input')?.value||'').trim();
@@ -3302,7 +3218,7 @@ function _initProviderUI(){
     auto:'Mode automatique : Gemini → Groq → Mistral → OpenRouter → Claude selon les clés configurées.',
     claude:'Claude uniquement — nécessite ANTHROPIC_API_KEY sur Render.',
     groq:'Groq (Llama 4 Scout) — gratuit avec votre clé console.groq.com.',
-    gemini:'Gemini recommandé — gratuit avec votre clé Google AI Studio.',
+    gemini:'Gemini recommandé — clé configurée sur le serveur (GEMINI_API_KEY).',
     mistral:'Mistral AI (mistral-small) — gratuit avec votre clé console.mistral.ai.',
     openrouter:'OpenRouter — accès à des dizaines de modèles gratuits (sk-or-...).'
   };
@@ -3311,12 +3227,7 @@ function _initProviderUI(){
   const grs=document.getElementById('groq-key-section');
   if(gs) gs.style.display=(p==='claude'||p==='groq')?'none':'';
   if(grs)grs.style.display=(p==='claude'||p==='gemini')?'none':'';
-  const ki=document.getElementById('gemini-key-input');
-  const savedGeminiKey=getGeminiKey();
-  if(ki&&savedGeminiKey)ki.value=savedGeminiKey;
-  const gki=document.getElementById('groq-key-input');
-  const savedGroqKey=getGroqKey();
-  if(gki&&savedGroqKey)gki.value=savedGroqKey;
+
   // Badge serveur
   const sb=document.getElementById('server-badge');
   if(sb){

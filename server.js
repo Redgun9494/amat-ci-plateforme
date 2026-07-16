@@ -134,11 +134,11 @@ function claudeMessagesToGeminiParts(messages) {
   return parts;
 }
 
-function callGemini(messages, geminiKey) {
+function callGemini(messages) {
   return new Promise((resolve, reject) => {
-    const key = String(geminiKey || GEMINI_API_KEY || '').trim();
-    if (!key) return reject(new Error('Clé Gemini non configurée — définissez GEMINI_API_KEY ou entrez-la dans la plateforme'));
-    if (!isValidGeminiKey(key)) return reject(new Error('Clé Gemini invalide — créez/copiez une clé depuis Google AI Studio'));
+    const key = String(GEMINI_API_KEY || '').trim();
+    if (!key) return reject(new Error('Clé Gemini non configurée — définissez GEMINI_API_KEY dans les variables d\'environnement Render'));
+    if (!isValidGeminiKey(key)) return reject(new Error('Clé Gemini invalide — vérifiez GEMINI_API_KEY dans les variables d\'environnement Render'));
 
     const parts = claudeMessagesToGeminiParts(messages);
     const payload = {
@@ -218,12 +218,12 @@ async function claudeMessagesToGroqMessages(messages) {
   return result;
 }
 
-function callGroq(messages, groqKey) {
+function callGroq(messages) {
   return new Promise(async (resolve, reject) => {
     try {
-    const key = String(groqKey || GROQ_API_KEY || '').trim();
-    if (!key) return reject(new Error('Clé Groq non configurée — inscrivez-vous sur groq.com et entrez votre clé gsk_...'));
-    if (!isValidGroqKey(key)) return reject(new Error('Clé Groq invalide — elle doit commencer par gsk_ et provenir de console.groq.com'));
+    const key = String(GROQ_API_KEY || '').trim();
+    if (!key) return reject(new Error('Clé Groq non configurée — définissez GROQ_API_KEY dans les variables d\'environnement Render'));
+    if (!isValidGroqKey(key)) return reject(new Error('Clé Groq invalide — vérifiez GROQ_API_KEY dans les variables d\'environnement Render'));
 
     const groqMessages = await claudeMessagesToGroqMessages(messages);
     if (!JSON.stringify(groqMessages).toLowerCase().includes('json')) {
@@ -430,23 +430,23 @@ function callOpenRouter(messages, openRouterKey) {
 }
 
 // ─── Sélection automatique du fournisseur ────────────────────────────────────
-async function callAI(messages, provider, geminiKey, groqKey, mistralKey, openRouterKey) {
+async function callAI(messages, provider, mistralKey, openRouterKey) {
   const hasAnthropic   = !!ANTHROPIC_API_KEY;
-  const hasGemini      = isValidGeminiKey(geminiKey || GEMINI_API_KEY);
-  const hasGroq        = isValidGroqKey(groqKey || GROQ_API_KEY);
+  const hasGemini      = isValidGeminiKey(GEMINI_API_KEY);
+  const hasGroq        = isValidGroqKey(GROQ_API_KEY);
   const hasMistral     = isValidMistralKey(mistralKey || MISTRAL_API_KEY);
   const hasOpenRouter  = isValidOpenRouterKey(openRouterKey || OPENROUTER_API_KEY);
 
-  if (provider === 'gemini')     return callGemini(messages, geminiKey);
+  if (provider === 'gemini')     return callGemini(messages);
   if (provider === 'claude')     return callAnthropic({ model: 'claude-sonnet-4-6', max_tokens: 8096, messages });
-  if (provider === 'groq')       return callGroq(messages, groqKey);
+  if (provider === 'groq')       return callGroq(messages);
   if (provider === 'mistral')    return callMistral(messages, mistralKey);
   if (provider === 'openrouter') return callOpenRouter(messages, openRouterKey);
 
   // Auto : Gemini → Groq → Mistral → OpenRouter → Claude
   const freeProviders = [
-    hasGemini     && (() => callGemini(messages, geminiKey)),
-    hasGroq       && (() => callGroq(messages, groqKey)),
+    hasGemini     && (() => callGemini(messages)),
+    hasGroq       && (() => callGroq(messages)),
     hasMistral    && (() => callMistral(messages, mistralKey)),
     hasOpenRouter && (() => callOpenRouter(messages, openRouterKey)),
     hasAnthropic  && (() => callAnthropic({ model: 'claude-sonnet-4-6', max_tokens: 8096, messages })),
@@ -523,21 +523,19 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res, 400, { error: "Champ 'messages' requis" });
 
       const provider       = body.provider        || 'auto';
-      const geminiKey      = body.gemini_key       || '';
-      const groqKey        = body.groq_key         || '';
       const mistralKey     = body.mistral_key      || '';
       const openRouterKey  = body.openrouter_key   || '';
 
       const providerLabel = provider === 'auto'
-        ? (isValidGeminiKey(geminiKey || GEMINI_API_KEY) ? 'Gemini (auto)'
-          : isValidGroqKey(groqKey || GROQ_API_KEY)      ? 'Groq (auto)'
+        ? (isValidGeminiKey(GEMINI_API_KEY) ? 'Gemini (auto)'
+          : isValidGroqKey(GROQ_API_KEY)    ? 'Groq (auto)'
           : isValidMistralKey(mistralKey || MISTRAL_API_KEY) ? 'Mistral (auto)'
           : isValidOpenRouterKey(openRouterKey || OPENROUTER_API_KEY) ? 'OpenRouter (auto)'
           : ANTHROPIC_API_KEY ? 'Claude (auto)' : 'Aucune clé')
         : provider;
       console.log(`[${new Date().toLocaleTimeString('fr-FR')}] Analyse — ${providerLabel}`);
 
-      const result = await callAI(body.messages, provider, geminiKey, groqKey, mistralKey, openRouterKey);
+      const result = await callAI(body.messages, provider, mistralKey, openRouterKey);
       if (result.status !== 200)
         console.error('[IA] Erreur', result.status, JSON.stringify(result.body).substring(0, 200));
       return sendJSON(res, result.status, result.body);
