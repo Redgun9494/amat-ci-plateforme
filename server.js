@@ -283,24 +283,38 @@ function callGroq(messages, groqKey) {
   });
 }
 
+// ─── Détection images dans les messages ──────────────────────────────────────
+function messagesHaveImages(messages) {
+  return messages.some(m => {
+    const c = Array.isArray(m.content) ? m.content : [{ type: 'text', text: m.content }];
+    return c.some(p => p.type === 'image');
+  });
+}
+
 // ─── Appel Mistral AI ─────────────────────────────────────────────────────────
-async function claudeMessagesToOpenAIMessages(messages) {
+async function claudeMessagesToOpenAIMessages(messages, supportsVision) {
   const result = [];
   for (const msg of messages) {
     const content = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }];
     const parts = [];
     for (const part of content) {
       if (part.type === 'text') {
-        parts.push(part.text);
+        parts.push({ type: 'text', text: part.text });
       } else if (part.type === 'document' && part.source?.type === 'base64') {
         // Extraction texte PDF pour Mistral/OpenRouter
         const pdfText = await extractPdfText(part.source.data);
-        parts.push(`[Contenu PDF extrait]\n${pdfText}`);
-      } else if (part.type === 'image') {
-        parts.push('[Image jointe — modèle texte uniquement]');
+        parts.push({ type: 'text', text: `[Contenu PDF extrait]\n${pdfText}` });
+      } else if (part.type === 'image' && part.source?.type === 'base64') {
+        if (supportsVision) {
+          parts.push({ type: 'image_url', image_url: { url: `data:${part.source.media_type};base64,${part.source.data}` } });
+        } else {
+          parts.push({ type: 'text', text: '[Image jointe — traitement visuel non disponible pour ce modèle]' });
+        }
       }
     }
-    result.push({ role: msg.role, content: parts.join('\n') });
+    // Si un seul texte, simplifier en string
+    const simplified = parts.length === 1 && parts[0].type === 'text' ? parts[0].text : parts;
+    result.push({ role: msg.role, content: simplified });
   }
   return result;
 }
@@ -312,12 +326,14 @@ function callMistral(messages, mistralKey) {
     if (!key) return reject(new Error('Clé Mistral non configurée — inscrivez-vous sur console.mistral.ai'));
     if (!isValidMistralKey(key)) return reject(new Error('Clé Mistral invalide'));
 
-    const mistralMessages = await claudeMessagesToOpenAIMessages(messages);
+    const hasImages = messagesHaveImages(messages);
+    const mistralModel = hasImages ? 'pixtral-12b-2409' : 'mistral-small-latest';
+    const mistralMessages = await claudeMessagesToOpenAIMessages(messages, hasImages);
     if (!JSON.stringify(mistralMessages).toLowerCase().includes('json')) {
       mistralMessages.unshift({ role: 'system', content: 'Réponds uniquement avec un objet JSON valide.' });
     }
     const payload = {
-      model: 'mistral-small-latest',
+      model: mistralModel,
       messages: mistralMessages,
       max_tokens: 8192,
       temperature: 0.1,
@@ -346,7 +362,7 @@ function callMistral(messages, mistralKey) {
           }
           const text = r.choices?.[0]?.message?.content || '';
           resolve({ status: 200, body: { id: 'mistral-' + Date.now(), type: 'message', role: 'assistant',
-            model: 'mistral-small-latest', content: [{ type: 'text', text }], stop_reason: 'end_turn', _provider: 'mistral' } });
+            model: mistralModel, content: [{ type: 'text', text }], stop_reason: 'end_turn', _provider: 'mistral' } });
         } catch (e) { reject(new Error('Réponse Mistral invalide: ' + e.message)); }
       });
     });
@@ -365,12 +381,14 @@ function callOpenRouter(messages, openRouterKey) {
     if (!key) return reject(new Error('Clé OpenRouter non configurée — inscrivez-vous sur openrouter.ai'));
     if (!isValidOpenRouterKey(key)) return reject(new Error('Clé OpenRouter invalide (doit commencer par sk-or-)'));
 
-    const orMessages = await claudeMessagesToOpenAIMessages(messages);
+    const hasImagesOR = messagesHaveImages(messages);
+    const orModel = hasImagesOR ? 'meta-llama/llama-3.2-11b-vision-instruct:free' : 'meta-llama/llama-3.1-8b-instruct:free';
+    const orMessages = await claudeMessagesToOpenAIMessages(messages, hasImagesOR);
     if (!JSON.stringify(orMessages).toLowerCase().includes('json')) {
       orMessages.unshift({ role: 'system', content: 'Réponds uniquement avec un objet JSON valide.' });
     }
     const payload = {
-      model: 'meta-llama/llama-3.1-8b-instruct:free',
+      model: orModel,
       messages: orMessages,
       max_tokens: 8192,
       temperature: 0.1,
@@ -400,7 +418,7 @@ function callOpenRouter(messages, openRouterKey) {
           }
           const text = r.choices?.[0]?.message?.content || '';
           resolve({ status: 200, body: { id: 'openrouter-' + Date.now(), type: 'message', role: 'assistant',
-            model: 'llama-3.1-8b', content: [{ type: 'text', text }], stop_reason: 'end_turn', _provider: 'openrouter' } });
+            model: orModel, content: [{ type: 'text', text }], stop_reason: 'end_turn', _provider: 'openrouter' } });
         } catch (e) { reject(new Error('Réponse OpenRouter invalide: ' + e.message)); }
       });
     });

@@ -1108,6 +1108,13 @@ body.dark .btn-outline{background:#111D16!important;color:#DCE7E0!important;bord
         </div>
       </div>
 
+      <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+        <button class="jpeg-mode-btn btn btn-outline" onclick="toggleJpegMode()"
+          style="font-size:11px;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;border:1.5px solid var(--border)"
+          title="Désactivé — cliquez pour convertir les PDFs en images JPEG avant analyse (utile pour PDFs scannés)">
+          <i class="fa fa-image"></i> Mode JPEG
+        </button>
+      </div>
       <div class="drop-zone" id="dz" ondragover="doDrag(event)" ondragleave="doLeave()" ondrop="doDrop(event)" style="opacity:.45;pointer-events:none;transition:opacity .3s" title="Sélectionnez d'abord un type de facture">
         <div class="icon-upload"><i class="fa fa-cloud-upload-alt"></i></div>
         <h3>Glissez vos factures ici</h3>
@@ -1498,6 +1505,7 @@ body.dark .btn-outline{background:#111D16!important;color:#DCE7E0!important;bord
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 // ═══ STATE ═══════════════════════════════════════════════════════════════════
 let rows = [];
@@ -1513,6 +1521,46 @@ let currentTypeFact = null; // 'pharmacie' | 'publique' | 'consultation'
 // ═══ SORT STATE ═══════════════════════════════════════════════════════════════
 let sortCol = null;
 let sortDir = 1; // 1=asc, -1=desc
+
+// ═══ MODE JPEG PDF ════════════════════════════════════════════════════════════
+function getJpegMode(){ return localStorage.getItem('amat_jpeg_mode')==='1'; }
+function setJpegMode(v){ localStorage.setItem('amat_jpeg_mode', v?'1':'0'); }
+function toggleJpegMode(){
+  const v=!getJpegMode(); setJpegMode(v);
+  document.querySelectorAll('.jpeg-mode-btn').forEach(b=>{
+    b.classList.toggle('active',v);
+    b.title=v?'Mode JPEG activé (PDFs scannés)':'Mode JPEG désactivé';
+  });
+  toast(v?'Mode JPEG activé — PDFs convertis en images avant analyse':'Mode JPEG désactivé — extraction texte standard','info',2500);
+}
+
+// Initialiser le worker PDF.js
+if(typeof pdfjsLib!=='undefined'){
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+/**
+ * Convertit un PDF (base64) en tableau de JPEG (base64), une entrée par page.
+ * Limite à maxPages pour éviter les fichiers trop volumineux.
+ */
+async function pdfToJpegPages(base64Data, maxPages=6){
+  if(typeof pdfjsLib==='undefined') throw new Error('PDF.js non chargé');
+  const bytes=Uint8Array.from(atob(base64Data),c=>c.charCodeAt(0));
+  const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
+  const n=Math.min(pdf.numPages, maxPages);
+  const jpegs=[];
+  for(let i=1;i<=n;i++){
+    const page=await pdf.getPage(i);
+    const vp=page.getViewport({scale:1.8}); // ~150 DPI
+    const canvas=document.createElement('canvas');
+    canvas.width=vp.width; canvas.height=vp.height;
+    const ctx=canvas.getContext('2d');
+    await page.render({canvasContext:ctx, viewport:vp}).promise;
+    const dataUrl=canvas.toDataURL('image/jpeg',0.88);
+    jpegs.push(dataUrl.split(',')[1]); // base64 uniquement
+  }
+  return jpegs;
+}
 
 // ═══ CHART ════════════════════════════════════════════════════════════════════
 let pharmaChart = null;
@@ -1846,13 +1894,21 @@ function loadFiles(files) {
   if(!files.length) return;
   fileQueue = [];
   let loaded = 0;
+  const jpegMode = getJpegMode();
   files.forEach((f,i)=>{
     const entry = {file:f, name:f.name, size:f.size, data:null, type:f.type, status:'pending', lines:0, queueIdx:i};
     fileQueue.push(entry);
     const reader = new FileReader();
-    reader.onload = ev => {
+    reader.onload = async ev => {
       entry.data = ev.target.result.split(',')[1];
       entry.preview = ev.target.result; // full data URL for thumbnail
+      if(jpegMode && f.type==='application/pdf'){
+        try{
+          entry.jpegPages = await pdfToJpegPages(entry.data);
+        }catch(e){
+          console.warn('PDF→JPEG conversion failed:',e);
+        }
+      }
       loaded++;
       if(loaded===files.length) renderQueue();
     };
@@ -1949,9 +2005,11 @@ async function retryOne(i){
     const resp=await fetch(proxyUrl+'/analyser',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({max_tokens:8096,provider:getProvider(),gemini_key:getGeminiKey(),groq_key:getGroqKey(),mistral_key:getMistralKey(),openrouter_key:getOpenRouterKey(),messages:[{role:'user',content:[
-        (entry.type==='application/pdf'
-          ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}}
-          :{type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}}),
+        ...(entry.jpegPages && entry.jpegPages.length
+          ? entry.jpegPages.map(b64=>({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}}))
+          : [entry.type==='application/pdf'
+              ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}}
+              :{type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}}]),
         {type:'text',text:getAnalysePrompt()}
       ]}]})
     });
@@ -2214,9 +2272,11 @@ async function extractAll(){
             mistral_key:getMistralKey(),
             openrouter_key:getOpenRouterKey(),
             messages:[{role:'user',content:[
-              (entry.type==='application/pdf'
-                ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}}
-                :{type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}}),
+              ...(entry.jpegPages && entry.jpegPages.length
+                ? entry.jpegPages.map(b64=>({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}}))
+                : [entry.type==='application/pdf'
+                    ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:entry.data}}
+                    :{type:'image',source:{type:'base64',media_type:entry.type||'image/jpeg',data:entry.data}}]),
               {type:'text',text:getAnalysePrompt()}
             ]}]
           })
